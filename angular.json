@@ -42,7 +42,7 @@
               ],
               "outputHashing": "all",
               "define": {
-                "API_URL":           "\"https://shop-pulse-nextjs.vercel.app\"",
+                "API_URL":           "\"https://shop-pulse-api.vercel.app\"",
                 "SUPABASE_URL":      "\"https://ffzjvidzaclbnlyhybpx.supabase.co\"",
                 "SUPABASE_ANON_KEY": "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmemp2aWR6YWNsYm5seWh5YnB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1ODk1NjIsImV4cCI6MjEwMTE2NTU2Mn0.vyYiz__GqX_FneJfbMfJIfrDAXnmYfkP9F8qX5AqXnk\""
               }
