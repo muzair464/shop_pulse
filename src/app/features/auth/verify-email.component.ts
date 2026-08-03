@@ -216,8 +216,7 @@ export class VerifyEmailComponent implements OnInit {
     this.state.set('waiting');
   }
 
-  /** Best-effort resend — calls the same forgot-password endpoint to trigger
-   *  a new Supabase Auth confirmation email.  Supabase rate-limits this. */
+  /** Resend the signup confirmation email (not a password reset). */
   async resend(): Promise<void> {
     const addr = this.email();
     if (!addr) return;
@@ -225,7 +224,7 @@ export class VerifyEmailComponent implements OnInit {
     this.resending.set(true);
     this.resendError.set(null);
 
-    const { error } = await this.auth.resetPassword(addr);
+    const { error } = await this.auth.resendVerification(addr);
 
     this.resending.set(false);
 

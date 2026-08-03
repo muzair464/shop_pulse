@@ -140,6 +140,15 @@ export class AuthService implements OnDestroy {
     }
   }
 
+  async resendVerification(email: string): Promise<{ error: string | null }> {
+    try {
+      await this.api.post('/api/v1/auth/resend-verification', { email });
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof ApiError ? err.message : 'Request failed.' };
+    }
+  }
+
   async updatePassword(
     currentPassword: string,
     newPassword: string,
