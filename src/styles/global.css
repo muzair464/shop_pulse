@@ -1,0 +1,105 @@
+/* ─── Tailwind base layers ───────────────────────────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base resets & tokens ───────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mono-spaced numeric fields (prices, quantities, order numbers) */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ─── Component utilities ────────────────────────────────────── */
+@layer components {
+  /* Standard card used throughout the app */
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-card;
+  }
+
+  /* Reusable form input style */
+  .form-input {
+    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+           text-gray-900 placeholder-gray-400
+           focus:border-primary-500 focus:outline-none focus:ring-2
+           focus:ring-primary-500/20
+           disabled:bg-gray-50 disabled:text-gray-400;
+  }
+
+  /* Primary action button */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2
+           text-sm font-semibold text-white shadow-sm
+           hover:bg-primary-700 active:bg-primary-800
+           focus:outline-none focus:ring-2 focus:ring-primary-500/50
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150;
+  }
+
+  /* Secondary / outline button */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-gray-300
+           bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm
+           hover:bg-gray-50 active:bg-gray-100
+           focus:outline-none focus:ring-2 focus:ring-primary-500/30
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2
+           text-sm font-semibold text-white shadow-sm
+           hover:bg-red-700 active:bg-red-800
+           focus:outline-none focus:ring-2 focus:ring-red-500/50
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150;
+  }
+
+  /* Badge variants */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .badge-green  { @apply badge bg-green-100 text-green-800; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
+  .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
+  .badge-red    { @apply badge bg-red-100 text-red-800; }
+  .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
+}
+
+/* ─── Print stylesheet ───────────────────────────────────────── */
+@media print {
+  /* Hide everything except the receipt */
+  body > * { display: none !important; }
+  .print-receipt { display: block !important; }
+
+  .print-receipt {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    width: 80mm;
+    margin: 0 auto;
+    padding: 8px;
+    color: #000;
+  }
+
+  .print-receipt .receipt-divider {
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+  }
+
+  .print-receipt .receipt-row {
+    display: flex;
+    justify-content: space-between;
+  }
+}
