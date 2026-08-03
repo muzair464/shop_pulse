@@ -27,7 +27,10 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [{ "glob": "**/*", "input": "public" }],
             "styles": ["src/styles/global.css"],
-            "scripts": []
+            "scripts": [],
+            "define": {
+              "API_URL": "\"http://localhost:3000\""
+            }
           },
           "configurations": {
             "production": {
@@ -35,12 +38,18 @@
                 { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" },
                 { "type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "8kB" }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "define": {
+                "API_URL": "\"https://shop-pulse-api.vercel.app\""
+              }
             },
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "define": {
+                "API_URL": "\"http://localhost:3000\""
+              }
             }
           },
           "defaultConfiguration": "development"
