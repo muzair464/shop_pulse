@@ -3,8 +3,13 @@ import { AuthService } from './auth.service';
 import { ShopStore } from './shop.store';
 import { InventoryStore } from './inventory.store';
 import { OrdersStore } from './orders.store';
-import { environment } from '../../environments/environment';
 import type { InventoryItemRow, OrderRow } from './database.types';
+
+// Injected at build time via angular.json define. Falls back to localhost for ng serve.
+declare const API_URL: string;
+function getApiUrl(): string {
+  try { return API_URL; } catch { return 'http://localhost:3000'; }
+}
 
 /**
  * RealtimeSyncService — root-provided; one native WebSocket per authenticated session.
@@ -36,7 +41,7 @@ export class RealtimeSyncService implements OnDestroy {
 
   /** Build the WebSocket URL from the API base URL (http → ws, https → wss). */
   private get wsUrl(): string {
-    const base = environment.apiUrl.replace(/^http/, 'ws');
+    const base = getApiUrl().replace(/^http/, 'ws');
     return `${base}/api/v1/ws/sync`;
   }
 
