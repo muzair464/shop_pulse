@@ -36,7 +36,7 @@ export class ApiClient {
       return API_URL;
     } catch {
       // Fallback for `ng serve` where define has not been applied.
-      return 'http://localhost:3000';
+      return 'https://shop-pulse-api.vercel.app';
     }
   })();
 

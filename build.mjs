@@ -15,7 +15,7 @@
 
 import { execSync } from 'child_process';
 
-const apiUrl = process.env['API_URL'] ?? 'http://localhost:3000';
+const apiUrl = process.env['API_URL'] ?? 'https://shop-pulse-api.vercel.app';
 
 // Validate — catch a missing or obviously wrong value before wasting a build.
 try {
