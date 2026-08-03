@@ -1,7 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../environments/environment';
+
+/**
+ * API_URL is injected at build time by esbuild's --define flag via build.mjs.
+ * It is replaced with the literal string value of the API_URL environment
+ * variable during `npm run build` (production) or defaults to localhost:3000
+ * for `npm run build:dev`.
+ *
+ * For local `ng serve`, the TypeScript declaration below provides the fallback
+ * so the code compiles — the actual value is overridden at build time.
+ *
+ * Never import from environments/ — that folder no longer exists.
+ */
+declare const API_URL: string;
 
 /**
  * ApiClient — thin wrapper over Angular HttpClient for the Node.js Express backend.
@@ -9,12 +21,24 @@ import { environment } from '../../environments/environment';
  *  - withCredentials: true on every request so the httpOnly session cookie
  *    is sent automatically — Angular never reads or stores a token.
  *  - No Authorization header — the backend reads the cookie directly.
- *  - Uses Angular HttpClient (provideHttpClient must be in app.config.ts).
  */
 @Injectable({ providedIn: 'root' })
 export class ApiClient {
   private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl;
+
+  /**
+   * Base URL resolved at runtime from the build-time injected API_URL constant.
+   * Falls back to localhost:3000 when running via `ng serve` (no define applied).
+   */
+  private readonly base: string = (() => {
+    try {
+      // API_URL is replaced by esbuild define — this branch is taken in all builds.
+      return API_URL;
+    } catch {
+      // Fallback for `ng serve` where define has not been applied.
+      return 'http://localhost:3000';
+    }
+  })();
 
   private get defaultHeaders(): HttpHeaders {
     return new HttpHeaders({ 'Content-Type': 'application/json' });
@@ -88,8 +112,8 @@ export class ApiClient {
         }),
       );
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const a   = document.createElement('a');
+      a.href     = url;
       a.download = filename ?? `export-${Date.now()}`;
       document.body.appendChild(a);
       a.click();
@@ -110,9 +134,9 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 
-  get isConflict(): boolean      { return this.status === 409; }
-  get isUnauthorized(): boolean  { return this.status === 401; }
-  get isNotFound(): boolean      { return this.status === 404; }
+  get isConflict(): boolean     { return this.status === 409; }
+  get isUnauthorized(): boolean { return this.status === 401; }
+  get isNotFound(): boolean     { return this.status === 404; }
 
   static from(err: unknown): ApiError {
     if (err instanceof ApiError) return err;
