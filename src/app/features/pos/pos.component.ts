@@ -10,6 +10,7 @@ import {
 } from 'lucide-angular';
 import { InventoryStore } from '../../core/inventory.store';
 import { ShopStore } from '../../core/shop.store';
+import { OrdersStore } from '../../core/orders.store';
 import { ToastService } from '../../core/toast.service';
 import { ApiClient, ApiError } from '../../core/api.client';
 import { ReceiptService } from '../../core/receipt.service';
@@ -315,6 +316,7 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
 })
 export class PosComponent implements OnInit {
   private readonly inventoryStore = inject(InventoryStore);
+  private readonly ordersStore    = inject(OrdersStore);
   readonly shopStore   = inject(ShopStore);
   private readonly toast   = inject(ToastService);
   private readonly api     = inject(ApiClient);
@@ -541,10 +543,39 @@ export class PosComponent implements OnInit {
         idempotencyKey,
       );
       const o = result.order as {
-        order_number: string; created_at: string;
+        order_number: string; created_at: string; id: string;
         subtotal: number; discount: number; total: number; payment_method: string;
+        channel: string; payment_verified: boolean; idempotency_key: string | null;
+        shop_id: string;
         customer_name: string | null; customer_phone: string | null; customer_cnic: string | null;
       };
+
+      // ── Immediately update InventoryStore + IDB with decremented stock ──
+      // Don't wait for Supabase Realtime — update locally right now so the
+      // catalog reflects the correct stock count without any delay.
+      for (const line of lines) {
+        const newStock = Math.max(0, line.item.stock - line.qty);
+        this.inventoryStore.patchItem(line.item.id, { stock: newStock });
+      }
+
+      // ── Add the new order to OrdersStore + IDB immediately ───────────────
+      this.ordersStore.prependOrder({
+        id:               o.id ?? crypto.randomUUID(),
+        shop_id:          o.shop_id ?? this.shopStore.shopId() ?? '',
+        order_number:     o.order_number,
+        customer_name:    o.customer_name  ?? cName,
+        customer_phone:   o.customer_phone ?? cPhone,
+        customer_cnic:    o.customer_cnic  ?? cCnic,
+        channel:          (o.channel ?? 'POS') as import('../../core/database.types').OrderChannel,
+        payment_method:   (o.payment_method ?? this.paymentMethod()) as import('../../core/database.types').PaymentMethod,
+        subtotal:         o.subtotal  ?? sub,
+        discount:         o.discount  ?? disc,
+        total:            o.total     ?? Math.max(0, sub - disc),
+        payment_verified: o.payment_verified ?? false,
+        idempotency_key:  o.idempotency_key  ?? idempotencyKey,
+        created_at:       o.created_at,
+      });
+
       this.clearCart();
       this.cartExpanded.set(false);
       this.toast.success(`Order ${o.order_number} completed.`);

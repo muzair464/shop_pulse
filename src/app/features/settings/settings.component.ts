@@ -284,6 +284,8 @@ export class SettingsComponent implements OnInit {
       this.qrSaving.set(true);
       try {
         await this.api.post('/api/v1/settings/payment-qr', { imageBase64: base64, mimeType });
+        // Write through to ShopStore → IDB so QR survives refresh.
+        this.shopStore.patch({ paymentQrDataUri: dataUri });
         this.toast.success('QR image saved.');
       } catch (err) {
         this.toast.error(err instanceof ApiError ? err.message : 'Failed to save QR image.');
@@ -299,6 +301,8 @@ export class SettingsComponent implements OnInit {
     try {
       await this.api.delete('/api/v1/settings/payment-qr');
       this.qrPreviewUrl.set(null);
+      // Write through to ShopStore → IDB.
+      this.shopStore.patch({ paymentQrDataUri: null });
       this.toast.success('QR image removed.');
     } catch { this.toast.error('Failed to remove QR image.'); }
     finally { this.qrSaving.set(false); }
@@ -307,19 +311,28 @@ export class SettingsComponent implements OnInit {
   async updateAutoExport(event: Event): Promise<void> {
     const val = (event.target as HTMLSelectElement).value;
     this.autoExportFrequency.set(val);
+    // Write through to ShopStore → IDB immediately (optimistic).
+    this.shopStore.patch({ autoExportFrequency: val });
     try {
       await this.api.patch('/api/v1/settings', { autoExportFrequency: val });
       this.toast.success('Export schedule saved.');
-    } catch { this.toast.error('Failed to update export schedule.'); }
+    } catch {
+      this.toast.error('Failed to update export schedule.');
+      // Rollback signal (ShopStore.patch already wrote IDB; on next load server wins)
+    }
   }
 
   async toggleAutoPrint(): Promise<void> {
     const next = !this.autoPrintReceipt();
     this.autoPrintReceipt.set(next);
+    // Write through to ShopStore → IDB immediately (optimistic).
+    this.shopStore.patch({ autoPrintReceipt: next });
     try {
       await this.api.patch('/api/v1/settings', { autoPrintReceipt: next });
     } catch {
+      // Rollback
       this.autoPrintReceipt.set(!next);
+      this.shopStore.patch({ autoPrintReceipt: !next });
       this.toast.error('Failed to update print setting.');
     }
   }
