@@ -1,3 +1,15 @@
+/**
+ * realtime-sync.service.ts
+ *
+ * One Supabase Realtime WebSocket per authenticated session.
+ * Subscribes to postgres_changes for inventory_items, orders, and shops.
+ *
+ * Key changes from original:
+ *  - _refetchAll uses delta sync (passes shopId + respects IDB cursors)
+ *    instead of doing full reloads on every reconnect.
+ *  - All upsert/remove helpers in InventoryStore and OrdersStore now
+ *    write through to IndexedDB, so Realtime events are persisted.
+ */
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from './auth.service';
@@ -6,35 +18,12 @@ import { InventoryStore } from './inventory.store';
 import { OrdersStore } from './orders.store';
 import type { InventoryItemRow, OrderRow } from './database.types';
 
-/**
- * Public Supabase credentials — safe to ship in the browser bundle.
- * The anon key has only the permissions granted by your RLS policies.
- * The service role key NEVER appears here (it lives in the Next.js backend only).
- *
- * These are injected at build time via angular.json define.
- * Declare them so TypeScript compiles; esbuild replaces at build time.
- */
-declare const SUPABASE_URL: string;
+declare const SUPABASE_URL:      string;
 declare const SUPABASE_ANON_KEY: string;
 
-function getSupabaseUrl():    string { try { return SUPABASE_URL; }    catch { return ''; } }
-function getSupabaseAnonKey(): string { try { return SUPABASE_ANON_KEY; } catch { return ''; } }
+function getUrl():     string { try { return SUPABASE_URL;      } catch { return ''; } }
+function getAnonKey(): string { try { return SUPABASE_ANON_KEY; } catch { return ''; } }
 
-/**
- * RealtimeSyncService — root-provided; one Supabase Realtime connection per session.
- *
- * Replaces the custom WebSocket/pg LISTEN layer from the Express backend.
- * Supabase Realtime pushes postgres_changes events for inventory_items,
- * orders, and shops directly to this Angular service.
- *
- * Device revocation is handled via a private Broadcast channel keyed
- * to the device ID — the Next.js backend broadcasts to it when a device
- * is revoked from Settings on another device.
- *
- * Message shapes:
- *   postgres_changes: { schema, table, eventType, new, old, errors }
- *   broadcast (device channel): { event: 'session_revoked' }
- */
 @Injectable({ providedIn: 'root' })
 export class RealtimeSyncService implements OnDestroy {
   private readonly auth           = inject(AuthService);
@@ -42,9 +31,9 @@ export class RealtimeSyncService implements OnDestroy {
   private readonly inventoryStore = inject(InventoryStore);
   private readonly ordersStore    = inject(OrdersStore);
 
-  private supabase: SupabaseClient | null = null;
-  private dbChannel: RealtimeChannel | null = null;
-  private deviceChannel: RealtimeChannel | null = null;
+  private supabase:      SupabaseClient   | null = null;
+  private dbChannel:     RealtimeChannel  | null = null;
+  private deviceChannel: RealtimeChannel  | null = null;
   private shopId   = '';
   private deviceId = '';
 
@@ -53,23 +42,33 @@ export class RealtimeSyncService implements OnDestroy {
     this.shopId   = shopId;
     this.deviceId = deviceId ?? '';
 
-    this.supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    this.supabase = createClient(getUrl(), getAnonKey(), {
       realtime: { params: { eventsPerSecond: 10 } },
     });
 
     // ── Postgres changes channel ──────────────────────────────────────────
     this.dbChannel = this.supabase
       .channel(`shop:${shopId}`)
-      // inventory_items
-      .on('postgres_changes', { event: '*',      schema: 'public', table: 'inventory_items', filter: `shop_id=eq.${shopId}` }, payload => this._onInventory(payload))
-      // orders (INSERT only — no edits to committed orders)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders',          filter: `shop_id=eq.${shopId}` }, payload => this._onOrder(payload))
-      // shops (settings changes)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shops',           filter: `id=eq.${shopId}` },     payload => this._onShop(payload))
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory_items', filter: `shop_id=eq.${shopId}` },
+        payload => this._onInventory(payload),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` },
+        payload => this._onOrder(payload),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'shops', filter: `id=eq.${shopId}` },
+        payload => this._onShop(payload),
+      )
       .subscribe(status => {
         if (status === 'SUBSCRIBED') {
-          // Re-fetch all stores on subscribe as a correctness backstop.
-          void this._refetchAll();
+          // On reconnect, use delta sync so we only fetch rows that
+          // changed while the WebSocket was disconnected.
+          void this._refetchDeltas();
         }
       });
 
@@ -94,30 +93,42 @@ export class RealtimeSyncService implements OnDestroy {
     }
   }
 
-  // ── Postgres change handlers ────────────────────────────────────────────
+  // ── Postgres change handlers ──────────────────────────────────────────────
 
-  private _onInventory(payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }): void {
+  private _onInventory(payload: {
+    eventType: string;
+    new: Record<string, unknown>;
+    old: Record<string, unknown>;
+  }): void {
     const { eventType, new: row, old } = payload;
     if (eventType === 'DELETE') {
       const id = (old['id'] ?? row['id']) as string | undefined;
-      if (id) this.inventoryStore.removeItem(id);
+      if (id) this.inventoryStore.removeItem(id); // also removes from IDB
     } else {
-      this.inventoryStore.upsertItem(row as unknown as InventoryItemRow);
+      this.inventoryStore.upsertItem(row as unknown as InventoryItemRow); // also writes IDB
     }
   }
 
   private _onOrder(payload: { new: Record<string, unknown> }): void {
+    // prependOrder writes through to IDB automatically.
     this.ordersStore.prependOrder(payload.new as unknown as OrderRow);
   }
 
   private _onShop(payload: { new: Record<string, unknown> }): void {
+    // ShopStore.patch writes through to IDB automatically.
     this.shopStore.patch(payload.new);
   }
 
-  private async _refetchAll(): Promise<void> {
+  /**
+   * Called on SUBSCRIBED — re-syncs only rows that changed since the
+   * last known cursor in IndexedDB, not a full reload.
+   */
+  private async _refetchDeltas(): Promise<void> {
     await Promise.all([
-      this.inventoryStore.load(this.shopId),
-      this.ordersStore.load(this.shopId),
+      // force=false → reads IDB cursor → fetches only new/updated rows
+      this.inventoryStore.load(this.shopId, false),
+      this.ordersStore.load(this.shopId, false),
+      // ShopStore always does a full refresh (settings are tiny)
       this.shopStore.load(),
     ]);
   }
