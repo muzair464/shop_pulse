@@ -1,5 +1,5 @@
 import {
-  Component, inject, signal, OnInit, ChangeDetectionStrategy,
+  Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
 } from '@angular/core';
 import { ShoppingBag, Users, Wifi, WifiOff } from 'lucide-angular';
 import { StatCardComponent } from './stat-card.component';
@@ -72,12 +72,16 @@ export class DashboardComponent implements OnInit {
   readonly WifiOffIcon     = WifiOff;
   readonly shopName        = this.shopStore.shopName;
 
-  // Pre-seed from in-memory signals (already IDB-backed) for instant render.
+  /**
+   * Starts empty — populated in ngOnInit from IDB then overwritten by
+   * the network response.  Using a plain signal (not a class-field initializer
+   * snapshot) ensures OnPush marks the view dirty on every set().
+   */
   readonly stats = signal<DashboardStats>({
-    newOrders:           this.orders.todaysOrderCount(),
-    revenueToday:        this.orders.todaysRevenue(),
-    totalInventoryItems: this.inventory.totalCount(),
-    lowStockCount:       this.inventory.lowStockCount(),
+    newOrders:           0,
+    revenueToday:        0,
+    totalInventoryItems: 0,
+    lowStockCount:       0,
     revenueSeries:       [],
   });
 
@@ -85,7 +89,7 @@ export class DashboardComponent implements OnInit {
     const shopId = this.shopStore.shopId();
     if (!shopId) return;
 
-    // Step 1: load cached stats from IDB instantly (includes revenueSeries).
+    // ── Step 1: seed from IDB cache instantly ──────────────────────────────
     const cached = await this.localDb.getDashboardStats(shopId, 30);
     if (cached) {
       this.stats.set({
@@ -95,15 +99,31 @@ export class DashboardComponent implements OnInit {
         lowStockCount:       cached.lowStockCount,
         revenueSeries:       cached.revenueSeries,
       });
+    } else {
+      // No IDB cache yet — seed from in-memory store signals as a best-guess
+      // while the network resolves.
+      this.stats.set({
+        newOrders:           this.orders.todaysOrderCount(),
+        revenueToday:        this.orders.todaysRevenue(),
+        totalInventoryItems: this.inventory.totalCount(),
+        lowStockCount:       this.inventory.lowStockCount(),
+        revenueSeries:       [],
+      });
     }
 
-    // Step 2: refresh from network in the background.
-    void this._loadStats(shopId);
+    // ── Step 2: always fetch fresh from server (awaited, not void) ─────────
+    // We await here so the network result ALWAYS wins over the cache.
+    // The page already shows something (Step 1) so the user sees no blank.
+    await this._loadStats(shopId);
   }
 
   private async _loadStats(shopId: string): Promise<void> {
     try {
-      const data = await this.api.get<DashboardStats>('/api/v1/dashboard/stats');
+      // Pass the client's UTC offset so the server counts "today" in local time.
+      const tzOffset = new Date().getTimezoneOffset(); // minutes behind UTC (PKT = -300)
+      const data = await this.api.get<DashboardStats>(
+        `/api/v1/dashboard/stats?tzOffset=${tzOffset}`,
+      );
       const fresh: DashboardStats = {
         newOrders:           data.newOrders           ?? 0,
         revenueToday:        data.revenueToday         ?? 0,
@@ -111,16 +131,16 @@ export class DashboardComponent implements OnInit {
         lowStockCount:       data.lowStockCount        ?? 0,
         revenueSeries:       data.revenueSeries        ?? [],
       };
+      // Always update signal — this overwrites any stale IDB data.
       this.stats.set(fresh);
-      // Persist to IDB so the next visit renders instantly.
+      // Persist fresh result to IDB for next visit.
       void this.localDb.putDashboardStats({
-        shopId,
-        days:                30,
-        cachedAt:            new Date().toISOString(),
+        shopId, days: 30,
+        cachedAt: new Date().toISOString(),
         ...fresh,
       });
     } catch {
-      // Network unavailable — cached values already showing, nothing to do.
+      // Network unavailable — IDB/signal values already on screen.
     }
   }
 
