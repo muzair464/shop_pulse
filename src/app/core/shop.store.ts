@@ -42,11 +42,17 @@ export class ShopStore {
   readonly shopName = computed(() => this._shop()?.shopName ?? '');
   readonly paymentQrDataUri = computed(() => this._shop()?.paymentQrDataUri ?? null);
 
+  private _loadPromise: Promise<void> | null = null;
+
   async load(): Promise<void> {
+    // Deduplicate concurrent calls — layout and dashboard both call load() on refresh.
+    if (this._loadPromise) return this._loadPromise;
+    this._loadPromise = this._doLoad().finally(() => { this._loadPromise = null; });
+    return this._loadPromise;
+  }
+
+  private async _doLoad(): Promise<void> {
     // ── Step 1: instant paint from IDB ────────────────────────────────────
-    // Always attempt IDB read + network refresh (no early-exit guard).
-    // This ensures settings always reflect the latest value after edits
-    // on another device, while still rendering instantly from cache.
     const shopId = this.auth.currentShop()?.id;
     if (shopId && !this._shop()) {
       const cached = await this.localDb.getShop(shopId);
@@ -59,7 +65,6 @@ export class ShopStore {
     try {
       const data = await this.api.get<ShopProfile>('/api/v1/settings');
       this._shop.set(data);
-      // ── Step 3: persist to IDB ───────────────────────────────────────────
       void this.localDb.putShop(data);
     } catch (err) {
       this._error.set(err instanceof Error ? err.message : 'Failed to load shop.');

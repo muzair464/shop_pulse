@@ -86,8 +86,16 @@ export class DashboardComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    const shopId = this.shopStore.shopId();
-    if (!shopId) return;
+    // shopStore.shopId() may be null on a hard refresh because the layout's
+    // shopStore.load() runs concurrently with this component's init.
+    // Solution: if shopId isn't ready yet, wait for shopStore.load() to
+    // complete (it resolves quickly from IDB cache), then proceed.
+    let shopId = this.shopStore.shopId();
+    if (!shopId) {
+      await this.shopStore.load();
+      shopId = this.shopStore.shopId();
+    }
+    if (!shopId) return; // truly not authenticated — guard should have caught this
 
     // ── Step 1: seed from IDB cache instantly ──────────────────────────────
     const cached = await this.localDb.getDashboardStats(shopId, 30);
@@ -100,8 +108,6 @@ export class DashboardComponent implements OnInit {
         revenueSeries:       cached.revenueSeries,
       });
     } else {
-      // No IDB cache yet — seed from in-memory store signals as a best-guess
-      // while the network resolves.
       this.stats.set({
         newOrders:           this.orders.todaysOrderCount(),
         revenueToday:        this.orders.todaysRevenue(),
@@ -111,9 +117,7 @@ export class DashboardComponent implements OnInit {
       });
     }
 
-    // ── Step 2: always fetch fresh from server (awaited, not void) ─────────
-    // We await here so the network result ALWAYS wins over the cache.
-    // The page already shows something (Step 1) so the user sees no blank.
+    // ── Step 2: always fetch fresh from server ─────────────────────────────
     await this._loadStats(shopId);
   }
 
