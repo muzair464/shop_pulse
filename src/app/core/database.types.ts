@@ -88,6 +88,7 @@ export interface OrderItemRow {
   order_id:          string;
   inventory_item_id: string | null;
   name_snapshot:     string;
+  description:       string | null;
   qty:               number;
   unit_price:        number;
   line_total:        number;

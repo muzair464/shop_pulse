@@ -175,6 +175,15 @@
     margin-bottom: 0;
   }
 
+  /* ── Item description (below item name) ── */
+  .print-receipt .rct-item-desc {
+    font-size: 9px;
+    color: #555 !important;
+    margin-bottom: 1px;
+    padding-left: 2px;
+    font-style: italic;
+  }
+
   /* ── Item qty × price → total row ── */
   .print-receipt .rct-item-detail {
     font-size: 10px;

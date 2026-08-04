@@ -79,6 +79,9 @@ type TabFilter = 'all' | 'NEW' | 'USED';
               <div class="flex items-start justify-between gap-2 mb-1.5">
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-semibold text-gray-900 truncate">{{ item.name }}</p>
+                  @if (item.description) {
+                    <p class="text-xs text-gray-500 line-clamp-2 mt-0.5">{{ item.description }}</p>
+                  }
                   @if (item.imei) {
                     <p class="text-xs text-gray-400 font-mono truncate">{{ item.imei }}</p>
                   }
@@ -148,6 +151,9 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                   <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 max-w-[200px]">
                       <div class="font-medium text-sm text-gray-900 truncate">{{ item.name }}</div>
+                      @if (item.description) {
+                        <div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ item.description }}</div>
+                      }
                       @if (item.imei) {
                         <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ item.imei }}</div>
                       }

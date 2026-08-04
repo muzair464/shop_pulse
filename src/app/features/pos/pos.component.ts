@@ -101,6 +101,9 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
             <p class="text-xs font-semibold text-gray-800 leading-tight line-clamp-2 mb-1 min-h-[2rem]">
               {{ item.name }}
             </p>
+            @if (item.description) {
+              <p class="text-[10px] text-gray-400 line-clamp-1 mb-0.5">{{ item.description }}</p>
+            }
             <p class="text-[10px] text-gray-400 truncate mb-1.5">{{ item.category }}</p>
             <p class="mt-auto text-sm font-bold text-primary-700 tabular-nums">
               {{ item.selling_price | number:'1.0-0' }}
@@ -145,9 +148,14 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
         @for (line of cart(); track line.item.id) {
           <div class="px-3 py-2.5">
             <div class="flex items-start justify-between gap-2 mb-1.5">
-              <p class="text-xs font-medium text-gray-800 leading-snug line-clamp-2 flex-1 min-w-0">
-                {{ line.item.name }}
-              </p>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-800 leading-snug line-clamp-2">
+                  {{ line.item.name }}
+                </p>
+                @if (line.item.description) {
+                  <p class="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{{ line.item.description }}</p>
+                }
+              </div>
               <button type="button" (click)="removeLine(line)"
                 class="shrink-0 p-1 text-gray-300 hover:text-red-500 transition-colors"
                 [attr.aria-label]="'Remove ' + line.item.name">
@@ -490,7 +498,7 @@ export class PosComponent implements OnInit {
     order_number: string; created_at: string;
     subtotal: number; discount: number; total: number; paymentMethod: string;
     customerName: string | null; customerPhone: string | null; customerCnic: string | null;
-    items: Array<{ nameSnapshot: string; qty: number; unitPrice: number; lineTotal: number }>;
+    items: Array<{ nameSnapshot: string; description: string | null; qty: number; unitPrice: number; lineTotal: number }>;
   }): void {
     const shop = this.shopStore.shop();
     const fmt  = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -521,6 +529,7 @@ export class PosComponent implements OnInit {
     html += d('rct-section-label', 'ITEMS');
     for (const line of order.items) {
       html += d('rct-item-name', line.nameSnapshot);
+      if (line.description) html += d('rct-item-desc', line.description);
       html += `<div class="rct-row rct-item-detail">` +
         `<span>${line.qty} x ${fmt(line.unitPrice)}</span>` +
         `<span>${fmt(line.lineTotal)}</span></div>`;
@@ -557,6 +566,7 @@ export class PosComponent implements OnInit {
     const items = lines.map(l => ({
       inventoryId: l.item.id, qty: l.qty,
       unitPrice: this.linePrice(l), nameSnapshot: l.item.name,
+      description: l.item.description ?? null,
     }));
     const sub   = this.subtotal();
     const disc  = this.discount();
@@ -588,8 +598,8 @@ export class PosComponent implements OnInit {
         customerPhone: o.customer_phone ?? cPhone,
         customerCnic: o.customer_cnic ?? cCnic,
         items: items.map(i => ({
-          nameSnapshot: i.nameSnapshot, qty: i.qty,
-          unitPrice: i.unitPrice, lineTotal: i.qty * i.unitPrice,
+          nameSnapshot: i.nameSnapshot, description: i.description,
+          qty: i.qty, unitPrice: i.unitPrice, lineTotal: i.qty * i.unitPrice,
         })),
       });
     } catch (err) {

@@ -17,7 +17,7 @@ type MethodFilter  = 'all' | 'CASH' | 'CARD_KHATA' | 'DIGITAL_PAY';
 
 interface OrderDetail extends OrderRow {
   order_items: Array<{
-    id: string; name_snapshot: string;
+    id: string; name_snapshot: string; description: string | null;
     qty: number; unit_price: number; line_total: number;
   }>;
 }
@@ -257,9 +257,14 @@ interface OrderDetail extends OrderRow {
               <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Items</p>
                 @for (item of detailOrder()!.order_items; track item.id) {
-                  <div class="flex justify-between text-sm py-1">
-                    <span class="text-gray-700">{{ item.name_snapshot }} × {{ item.qty }}</span>
-                    <span class="tabular-nums font-medium">{{ item.line_total | number:'1.0-0' }}</span>
+                  <div class="py-1.5 border-b border-gray-50 last:border-0">
+                    <div class="flex justify-between text-sm gap-2">
+                      <span class="text-gray-700 font-medium">{{ item.name_snapshot }} × {{ item.qty }}</span>
+                      <span class="tabular-nums font-medium shrink-0">{{ item.line_total | number:'1.0-0' }}</span>
+                    </div>
+                    @if (item.description) {
+                      <p class="text-xs text-gray-400 mt-0.5">{{ item.description }}</p>
+                    }
                   </div>
                 }
               </div>
