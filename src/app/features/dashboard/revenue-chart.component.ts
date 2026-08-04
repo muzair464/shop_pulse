@@ -8,6 +8,7 @@ import {
 } from 'chart.js';
 import { ApiClient } from '../../core/api.client';
 import { ShopStore } from '../../core/shop.store';
+import { LocalDbService } from '../../core/local-db.service';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend);
 
@@ -52,6 +53,7 @@ interface ChartPoint { day: string; total_revenue: number; order_count: number; 
 export class RevenueChartComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly api       = inject(ApiClient);
   private readonly shopStore = inject(ShopStore);
+  private readonly localDb   = inject(LocalDbService);
 
   @ViewChild('chartCanvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
 
@@ -107,8 +109,19 @@ export class RevenueChartComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async loadData(): Promise<void> {
-    if (!this.shopStore.shopId()) return;
-    this.loading.set(true);
+    const shopId = this.shopStore.shopId();
+    if (!shopId) return;
+
+    // Step 1: render from IDB cache immediately (no loading spinner).
+    const cached = await this.localDb.getDashboardStats(shopId, this.range());
+    if (cached?.revenueSeries?.length) {
+      if (this.chart) { this.updateChart(cached.revenueSeries); }
+      else { this.pendingData = cached.revenueSeries; }
+    } else {
+      this.loading.set(true);
+    }
+
+    // Step 2: refresh from network in the background.
     try {
       const data = await this.api.get<{ revenueSeries: ChartPoint[] }>(
         `/api/v1/dashboard/stats?days=${this.range()}`,
@@ -116,8 +129,21 @@ export class RevenueChartComponent implements OnInit, AfterViewInit, OnDestroy {
       const points = data.revenueSeries ?? [];
       if (this.chart) { this.updateChart(points); }
       else { this.pendingData = points; }
+
+      // Persist series alongside KPIs; reuse existing KPI values if present.
+      const existing = await this.localDb.getDashboardStats(shopId, this.range());
+      void this.localDb.putDashboardStats({
+        shopId,
+        days:                this.range(),
+        cachedAt:            new Date().toISOString(),
+        newOrders:           existing?.newOrders           ?? 0,
+        revenueToday:        existing?.revenueToday         ?? 0,
+        totalInventoryItems: existing?.totalInventoryItems  ?? 0,
+        lowStockCount:       existing?.lowStockCount        ?? 0,
+        revenueSeries:       points,
+      });
     } catch {
-      // Chart load failure is non-critical
+      // Network unavailable — cached chart already visible.
     } finally {
       this.loading.set(false);
     }

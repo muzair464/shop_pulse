@@ -8,13 +8,14 @@ import { ShopStore } from '../../core/shop.store';
 import { InventoryStore } from '../../core/inventory.store';
 import { OrdersStore } from '../../core/orders.store';
 import { ApiClient } from '../../core/api.client';
+import { LocalDbService } from '../../core/local-db.service';
 
-interface DashboardStats {
+export interface DashboardStats {
   newOrders:           number;
   revenueToday:        number;
   totalInventoryItems: number;
   lowStockCount:       number;
-  revenueSeries:       unknown[];
+  revenueSeries:       Array<{ day: string; total_revenue: number; order_count: number }>;
 }
 
 @Component({
@@ -59,11 +60,11 @@ interface DashboardStats {
   `,
 })
 export class DashboardComponent implements OnInit {
-  // Stores are already loaded by AuthenticatedLayoutComponent — read signals directly.
   private readonly shopStore = inject(ShopStore);
   readonly inventory         = inject(InventoryStore);
   private readonly orders    = inject(OrdersStore);
   private readonly api       = inject(ApiClient);
+  private readonly localDb   = inject(LocalDbService);
 
   readonly ShoppingBagIcon = ShoppingBag;
   readonly UsersIcon       = Users;
@@ -71,8 +72,7 @@ export class DashboardComponent implements OnInit {
   readonly WifiOffIcon     = WifiOff;
   readonly shopName        = this.shopStore.shopName;
 
-  // Stats are pre-seeded from the already-loaded signals so the page
-  // renders instantly. The network call updates them in the background.
+  // Pre-seed from in-memory signals (already IDB-backed) for instant render.
   readonly stats = signal<DashboardStats>({
     newOrders:           this.orders.todaysOrderCount(),
     revenueToday:        this.orders.todaysRevenue(),
@@ -81,24 +81,46 @@ export class DashboardComponent implements OnInit {
     revenueSeries:       [],
   });
 
-  ngOnInit(): void {
-    // Fire the stats request in the background — does NOT block rendering.
-    // The page is already showing data from cached signals above.
-    void this._loadStats();
+  async ngOnInit(): Promise<void> {
+    const shopId = this.shopStore.shopId();
+    if (!shopId) return;
+
+    // Step 1: load cached stats from IDB instantly (includes revenueSeries).
+    const cached = await this.localDb.getDashboardStats(shopId, 30);
+    if (cached) {
+      this.stats.set({
+        newOrders:           cached.newOrders,
+        revenueToday:        cached.revenueToday,
+        totalInventoryItems: cached.totalInventoryItems,
+        lowStockCount:       cached.lowStockCount,
+        revenueSeries:       cached.revenueSeries,
+      });
+    }
+
+    // Step 2: refresh from network in the background.
+    void this._loadStats(shopId);
   }
 
-  private async _loadStats(): Promise<void> {
+  private async _loadStats(shopId: string): Promise<void> {
     try {
       const data = await this.api.get<DashboardStats>('/api/v1/dashboard/stats');
-      this.stats.set({
+      const fresh: DashboardStats = {
         newOrders:           data.newOrders           ?? 0,
         revenueToday:        data.revenueToday         ?? 0,
         totalInventoryItems: data.totalInventoryItems  ?? 0,
         lowStockCount:       data.lowStockCount        ?? 0,
         revenueSeries:       data.revenueSeries        ?? [],
+      };
+      this.stats.set(fresh);
+      // Persist to IDB so the next visit renders instantly.
+      void this.localDb.putDashboardStats({
+        shopId,
+        days:                30,
+        cachedAt:            new Date().toISOString(),
+        ...fresh,
       });
     } catch {
-      // Non-critical — cached values from signals remain on screen.
+      // Network unavailable — cached values already showing, nothing to do.
     }
   }
 
