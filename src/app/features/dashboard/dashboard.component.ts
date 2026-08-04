@@ -17,7 +17,10 @@ import { LocalDbService } from '../../core/local-db.service';
 
 export interface DashboardStats {
   newOrders:           number;
-  revenueToday:        number;
+  salesToday:          number;  // gross sales value today
+  profitToday:         number;  // selling price - cost price today
+  totalSales:          number;  // all-time gross sales
+  totalProfit:         number;  // all-time profit
   totalInventoryItems: number;
   lowStockCount:       number;
   revenueSeries:       Array<{ day: string; total_revenue: number; order_count: number }>;
@@ -37,35 +40,35 @@ export interface DashboardStats {
         </p>
       </div>
 
-      <!-- Row 1: Today's live stats from server -->
+      <!-- Row 1: Today's stats (server-authoritative) -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <app-stat-card label="Today's Orders" [value]="stats().newOrders"
           [icon]="ShoppingBagIcon" subtext="since midnight"
           iconBgClass="bg-blue-100" iconColorClass="text-blue-600" />
-        <app-stat-card label="Today's Revenue" [value]="formatCurrency(stats().revenueToday)"
-          [icon]="DollarSignIcon" subtext="PKR"
+        <app-stat-card label="Today's Sales" [value]="formatCurrency(stats().salesToday)"
+          [icon]="ShoppingCartIcon" subtext="gross value today"
           iconBgClass="bg-green-100" iconColorClass="text-green-600" />
-        <app-stat-card label="In Stock" [value]="inventory.inStockCount()"
-          [icon]="PackageCheckIcon" subtext="items available"
-          iconBgClass="bg-emerald-100" iconColorClass="text-emerald-600" />
+        <app-stat-card label="Today's Profit" [value]="formatCurrency(stats().profitToday)"
+          [icon]="TrendingUpIcon" subtext="sales minus cost"
+          iconBgClass="bg-primary-100" iconColorClass="text-primary-600" />
         <app-stat-card label="Low Stock" [value]="stats().lowStockCount"
-          [icon]="AlertTriangleIcon" subtext="need restocking"
+          [icon]="AlertTriangleIcon" subtext="items ≤ 5 units"
           iconBgClass="bg-yellow-100" iconColorClass="text-yellow-600" />
       </div>
 
-      <!-- Row 2: Cumulative stats from local stores -->
+      <!-- Row 2: All-time totals -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <app-stat-card label="Total Orders" [value]="orders.totalOrderCount()"
-          [icon]="ShoppingCartIcon" subtext="all time"
+        <app-stat-card label="Total Sales" [value]="formatCurrency(stats().totalSales)"
+          [icon]="DollarSignIcon" subtext="all-time gross"
           iconBgClass="bg-indigo-100" iconColorClass="text-indigo-600" />
-        <app-stat-card label="Total Revenue" [value]="formatCurrency(orders.totalRevenue())"
-          [icon]="TrendingUpIcon" subtext="all time"
-          iconBgClass="bg-primary-100" iconColorClass="text-primary-600" />
-        <app-stat-card label="Avg. Order Value" [value]="formatCurrency(orders.avgOrderValue())"
-          [icon]="BarChart2Icon" subtext="per order"
+        <app-stat-card label="Total Profit" [value]="formatCurrency(stats().totalProfit)"
+          [icon]="BarChart2Icon" subtext="all-time net"
           iconBgClass="bg-pink-100" iconColorClass="text-pink-600" />
-        <app-stat-card label="Total Items" [value]="inventory.totalCount()"
-          [icon]="PackageIcon" subtext="in catalog"
+        <app-stat-card label="In Stock" [value]="inventory.inStockCount()"
+          [icon]="PackageCheckIcon" subtext="items available"
+          iconBgClass="bg-emerald-100" iconColorClass="text-emerald-600" />
+        <app-stat-card label="Catalog Size" [value]="inventory.totalCount()"
+          [icon]="PackageIcon" subtext="total SKUs"
           iconBgClass="bg-orange-100" iconColorClass="text-orange-600" />
       </div>
 
@@ -98,7 +101,10 @@ export class DashboardComponent implements OnInit {
    */
   readonly stats = signal<DashboardStats>({
     newOrders:           0,
-    revenueToday:        0,
+    salesToday:          0,
+    profitToday:         0,
+    totalSales:          0,
+    totalProfit:         0,
     totalInventoryItems: 0,
     lowStockCount:       0,
     revenueSeries:       [],
@@ -121,7 +127,10 @@ export class DashboardComponent implements OnInit {
     if (cached) {
       this.stats.set({
         newOrders:           cached.newOrders,
-        revenueToday:        cached.revenueToday,
+        salesToday:          cached.revenueToday,  // revenueToday stored legacy field
+        profitToday:         0,
+        totalSales:          cached.revenueToday,
+        totalProfit:         0,
         totalInventoryItems: cached.totalInventoryItems,
         lowStockCount:       cached.lowStockCount,
         revenueSeries:       cached.revenueSeries,
@@ -129,7 +138,10 @@ export class DashboardComponent implements OnInit {
     } else {
       this.stats.set({
         newOrders:           this.orders.todaysOrderCount(),
-        revenueToday:        this.orders.todaysRevenue(),
+        salesToday:          this.orders.todaysRevenue(),
+        profitToday:         0,
+        totalSales:          this.orders.totalRevenue(),
+        totalProfit:         0,
         totalInventoryItems: this.inventory.totalCount(),
         lowStockCount:       this.inventory.lowStockCount(),
         revenueSeries:       [],
@@ -149,7 +161,10 @@ export class DashboardComponent implements OnInit {
       );
       const fresh: DashboardStats = {
         newOrders:           data.newOrders           ?? 0,
-        revenueToday:        data.revenueToday         ?? 0,
+        salesToday:          data.salesToday           ?? 0,
+        profitToday:         data.profitToday          ?? 0,
+        totalSales:          data.totalSales           ?? 0,
+        totalProfit:         data.totalProfit          ?? 0,
         totalInventoryItems: data.totalInventoryItems  ?? 0,
         lowStockCount:       data.lowStockCount        ?? 0,
         revenueSeries:       data.revenueSeries        ?? [],
@@ -159,8 +174,12 @@ export class DashboardComponent implements OnInit {
       // Persist fresh result to IDB for next visit.
       void this.localDb.putDashboardStats({
         shopId, days: 30,
-        cachedAt: new Date().toISOString(),
-        ...fresh,
+        cachedAt:            new Date().toISOString(),
+        newOrders:           fresh.newOrders,
+        revenueToday:        fresh.salesToday,
+        totalInventoryItems: fresh.totalInventoryItems,
+        lowStockCount:       fresh.lowStockCount,
+        revenueSeries:       fresh.revenueSeries,
       });
     } catch {
       // Network unavailable — IDB/signal values already on screen.
