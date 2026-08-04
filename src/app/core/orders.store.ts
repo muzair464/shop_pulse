@@ -48,9 +48,7 @@ export class OrdersStore {
 
   readonly todaysOrderCount = computed(() => {
     const today = new Date().toDateString();
-    return this._orders().filter(
-      o => new Date(o.created_at).toDateString() === today,
-    ).length;
+    return this._orders().filter(o => new Date(o.created_at).toDateString() === today).length;
   });
 
   readonly todaysRevenue = computed(() => {
@@ -59,6 +57,21 @@ export class OrdersStore {
       .filter(o => new Date(o.created_at).toDateString() === today)
       .reduce((s, o) => s + Number(o.total), 0);
   });
+
+  readonly totalRevenue = computed(() =>
+    this._orders().reduce((s, o) => s + Number(o.total), 0),
+  );
+
+  readonly totalOrderCount = computed(() => this._orders().length);
+
+  readonly avgOrderValue = computed(() => {
+    const count = this._orders().length;
+    return count === 0 ? 0 : this.totalRevenue() / count;
+  });
+
+  readonly totalDiscount = computed(() =>
+    this._orders().reduce((s, o) => s + Number(o.discount), 0),
+  );
 
   /**
    * Load orders using offline-first + delta sync strategy.

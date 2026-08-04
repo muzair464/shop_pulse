@@ -1,14 +1,14 @@
 import {
   Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
+  HostListener, ViewChild, ElementRef,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { LucideAngularModule, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-angular';
+import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { LucideAngularModule, Plus, Pencil, Trash2, X, Loader2, Search } from 'lucide-angular';
 import { InventoryStore } from '../../core/inventory.store';
 import { ShopStore } from '../../core/shop.store';
 import { ToastService } from '../../core/toast.service';
 import { ApiClient, ApiError } from '../../core/api.client';
-import { ShopStatsBarComponent } from '../../shared/shop-stats-bar.component';
 import { BadgeComponent } from '../../shared/badge.component';
 import { PaginationComponent } from '../../shared/pagination.component';
 import { ExportCsvButtonComponent } from '../../shared/export-csv-button.component';
@@ -21,8 +21,8 @@ type TabFilter = 'all' | 'NEW' | 'USED';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule, LucideAngularModule, DecimalPipe,
-    ShopStatsBarComponent, BadgeComponent, PaginationComponent, ExportCsvButtonComponent,
+    ReactiveFormsModule, FormsModule, LucideAngularModule, DecimalPipe,
+    BadgeComponent, PaginationComponent, ExportCsvButtonComponent,
   ],
   template: `
     <div>
@@ -41,25 +41,59 @@ type TabFilter = 'all' | 'NEW' | 'USED';
         </div>
       </div>
 
-      <app-shop-stats-bar />
+      <!-- Inventory-specific stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Total Items</p>
+          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ inventoryStore.totalCount() }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">In Stock</p>
+          <p class="text-xl font-bold text-green-600 tabular-nums">{{ inventoryStore.inStockCount() }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Out of Stock</p>
+          <p class="text-xl font-bold text-red-600 tabular-nums">{{ inventoryStore.outOfStockCount() }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Low Stock</p>
+          <p class="text-xl font-bold text-yellow-600 tabular-nums">{{ inventoryStore.lowStockCount() }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Cost Value</p>
+          <p class="text-lg font-bold text-gray-900 tabular-nums">{{ inventoryStore.totalStockValue() | number:'1.0-0' }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Retail Value</p>
+          <p class="text-lg font-bold text-primary-700 tabular-nums">{{ inventoryStore.totalRetailValue() | number:'1.0-0' }}</p>
+        </div>
+      </div>
 
-      <!-- Tab filter -->
-      <div class="flex gap-1 mb-4" role="tablist" aria-label="Filter by classification">
-        @for (tab of tabs; track tab.value) {
-          <button
-            type="button" role="tab"
-            (click)="activeTab.set(tab.value)"
-            [attr.aria-selected]="activeTab() === tab.value"
-            [class.bg-primary-600]="activeTab() === tab.value"
-            [class.text-white]="activeTab() === tab.value"
-            [class.border-primary-600]="activeTab() === tab.value"
-            class="px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-200
-                   text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            {{ tab.label }}
-            <span class="ml-1.5 text-xs opacity-70">({{ tab.count() }})</span>
-          </button>
-        }
+      <!-- Search + tab filter row -->
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <div class="relative flex-1 min-w-[160px]">
+          <lucide-icon [img]="SearchIcon" size="15"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            aria-hidden="true" />
+          <input #searchInput type="search" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event); onSearchChange()"
+            placeholder="  Search inventory… (Alt+K)"
+            class="form-input pl-9 text-sm"
+            aria-label="Search inventory" />
+        </div>
+        <div class="flex gap-1" role="tablist" aria-label="Filter by classification">
+          @for (tab of tabs; track tab.value) {
+            <button type="button" role="tab"
+              (click)="activeTab.set(tab.value)"
+              [attr.aria-selected]="activeTab() === tab.value"
+              [class.bg-primary-600]="activeTab() === tab.value"
+              [class.text-white]="activeTab() === tab.value"
+              [class.border-primary-600]="activeTab() === tab.value"
+              class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">
+              {{ tab.label }}
+              <span class="ml-1 text-xs opacity-70">({{ tab.count() }})</span>
+            </button>
+          }
+        </div>
       </div>
 
       <!-- Mobile: card list -->
@@ -346,11 +380,16 @@ export class InventoryComponent implements OnInit {
   private readonly api    = inject(ApiClient);
   private readonly fb     = inject(FormBuilder);
 
+  @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
+
   readonly PlusIcon    = Plus;
   readonly PencilIcon  = Pencil;
   readonly Trash2Icon  = Trash2;
   readonly XIcon       = X;
   readonly Loader2Icon = Loader2;
+  readonly SearchIcon  = Search;
+
+  searchQuery = signal('');
 
   readonly activeTab   = signal<TabFilter>('all');
   readonly currentPage = signal(0);
@@ -359,6 +398,16 @@ export class InventoryComponent implements OnInit {
   readonly editingItem = signal<InventoryItemRow | null>(null);
   readonly formError   = signal<string | null>(null);
   readonly formSaving  = signal(false);
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (e.altKey && e.key === 'k') {
+      e.preventDefault();
+      this.searchInputRef?.nativeElement.focus();
+    }
+  }
+
+  onSearchChange(): void { this.currentPage.set(0); }
 
   readonly categories = ['Smartphones', 'Accessories', 'Tablets', 'Laptops', 'Other'];
   readonly classificationOptions = [
@@ -374,9 +423,20 @@ export class InventoryComponent implements OnInit {
 
   readonly filteredItems = computed(() => {
     const tab = this.activeTab();
-    return tab === 'all'
+    const q   = this.searchQuery().toLowerCase().trim();
+    let items = tab === 'all'
       ? this.inventoryStore.items()
       : this.inventoryStore.items().filter(i => i.classification === tab);
+    if (q) {
+      items = items.filter(i =>
+        i.name.toLowerCase().includes(q)
+        || i.category.toLowerCase().includes(q)
+        || (i.description ?? '').toLowerCase().includes(q)
+        || (i.imei ?? '').includes(q)
+        || (i.sku ?? '').toLowerCase().includes(q),
+      );
+    }
+    return items;
   });
 
   readonly pagedItems = computed(() => {

@@ -1,7 +1,12 @@
 import {
-  Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
+  Component, inject, signal, OnInit, ChangeDetectionStrategy,
 } from '@angular/core';
-import { ShoppingBag, Users, Wifi, WifiOff } from 'lucide-angular';
+import { DecimalPipe } from '@angular/common';
+import {
+  ShoppingBag, TrendingUp, Package, AlertTriangle,
+  DollarSign, ShoppingCart, PackageCheck, BarChart2,
+} from 'lucide-angular';
+import { LucideAngularModule } from 'lucide-angular';
 import { StatCardComponent } from './stat-card.component';
 import { RevenueChartComponent } from './revenue-chart.component';
 import { ShopStore } from '../../core/shop.store';
@@ -22,7 +27,7 @@ export interface DashboardStats {
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatCardComponent, RevenueChartComponent],
+  imports: [DecimalPipe, LucideAngularModule, StatCardComponent, RevenueChartComponent],
   template: `
     <div>
       <div class="mb-6">
@@ -32,29 +37,39 @@ export interface DashboardStats {
         </p>
       </div>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <app-stat-card
-          label="New Orders" [value]="stats().newOrders"
-          [icon]="ShoppingBagIcon" subtext="Today"
-          iconBgClass="bg-blue-100" iconColorClass="text-blue-600"
-        />
-        <app-stat-card
-          label="Revenue Today" [value]="formatCurrency(stats().revenueToday)"
-          [icon]="UsersIcon"
-          iconBgClass="bg-green-100" iconColorClass="text-green-600"
-        />
-        <app-stat-card
-          label="In Stock" [value]="inventory.inStockCount()"
-          [icon]="WifiIcon" subtext="Items in stock"
-          iconBgClass="bg-emerald-100" iconColorClass="text-emerald-600"
-        />
-        <app-stat-card
-          label="Low Stock" [value]="inventory.lowStockCount()"
-          [icon]="WifiOffIcon" subtext="Need restocking"
-          iconBgClass="bg-yellow-100" iconColorClass="text-yellow-600"
-        />
+      <!-- Row 1: Today's live stats from server -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <app-stat-card label="Today's Orders" [value]="stats().newOrders"
+          [icon]="ShoppingBagIcon" subtext="since midnight"
+          iconBgClass="bg-blue-100" iconColorClass="text-blue-600" />
+        <app-stat-card label="Today's Revenue" [value]="formatCurrency(stats().revenueToday)"
+          [icon]="DollarSignIcon" subtext="PKR"
+          iconBgClass="bg-green-100" iconColorClass="text-green-600" />
+        <app-stat-card label="In Stock" [value]="inventory.inStockCount()"
+          [icon]="PackageCheckIcon" subtext="items available"
+          iconBgClass="bg-emerald-100" iconColorClass="text-emerald-600" />
+        <app-stat-card label="Low Stock" [value]="stats().lowStockCount"
+          [icon]="AlertTriangleIcon" subtext="need restocking"
+          iconBgClass="bg-yellow-100" iconColorClass="text-yellow-600" />
       </div>
 
+      <!-- Row 2: Cumulative stats from local stores -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <app-stat-card label="Total Orders" [value]="orders.totalOrderCount()"
+          [icon]="ShoppingCartIcon" subtext="all time"
+          iconBgClass="bg-indigo-100" iconColorClass="text-indigo-600" />
+        <app-stat-card label="Total Revenue" [value]="formatCurrency(orders.totalRevenue())"
+          [icon]="TrendingUpIcon" subtext="all time"
+          iconBgClass="bg-primary-100" iconColorClass="text-primary-600" />
+        <app-stat-card label="Avg. Order Value" [value]="formatCurrency(orders.avgOrderValue())"
+          [icon]="BarChart2Icon" subtext="per order"
+          iconBgClass="bg-pink-100" iconColorClass="text-pink-600" />
+        <app-stat-card label="Total Items" [value]="inventory.totalCount()"
+          [icon]="PackageIcon" subtext="in catalog"
+          iconBgClass="bg-orange-100" iconColorClass="text-orange-600" />
+      </div>
+
+      <!-- Revenue chart -->
       <app-revenue-chart />
     </div>
   `,
@@ -66,10 +81,14 @@ export class DashboardComponent implements OnInit {
   private readonly api       = inject(ApiClient);
   private readonly localDb   = inject(LocalDbService);
 
-  readonly ShoppingBagIcon = ShoppingBag;
-  readonly UsersIcon       = Users;
-  readonly WifiIcon        = Wifi;
-  readonly WifiOffIcon     = WifiOff;
+  readonly ShoppingBagIcon  = ShoppingBag;
+  readonly DollarSignIcon   = DollarSign;
+  readonly PackageCheckIcon = PackageCheck;
+  readonly AlertTriangleIcon = AlertTriangle;
+  readonly ShoppingCartIcon = ShoppingCart;
+  readonly TrendingUpIcon   = TrendingUp;
+  readonly BarChart2Icon    = BarChart2;
+  readonly PackageIcon      = Package;
   readonly shopName        = this.shopStore.shopName;
 
   /**

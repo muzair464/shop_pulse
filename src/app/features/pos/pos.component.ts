@@ -44,7 +44,7 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange()"
             (keydown)="onSearchKeydown($event)"
-            placeholder="  Search products… (Ctrl+K)"
+            placeholder="  Search products… (Alt+K)"
             class="form-input pl-9 pr-4 text-sm"
             aria-label="Search products"
             aria-autocomplete="list"
@@ -386,8 +386,8 @@ export class PosComponent implements OnInit {
   // ── Keyboard shortcuts ──────────────────────────────────────────
   @HostListener('document:keydown', ['$event'])
   onKeydown(e: KeyboardEvent): void {
-    // Ctrl+K — focus search
-    if (e.ctrlKey && e.key === 'k') {
+    // Alt+K — focus search
+    if (e.altKey && e.key === 'k') {
       e.preventDefault();
       if (this.isMobile) this.cartExpanded.set(false);
       this.searchInputRef?.nativeElement.focus();

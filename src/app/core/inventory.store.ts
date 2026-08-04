@@ -33,10 +33,17 @@ export class InventoryStore {
   readonly items        = this._items.asReadonly();
   readonly loading      = this._loading.asReadonly();
   readonly error        = this._error.asReadonly();
-  readonly totalCount   = computed(() => this._items().length);
-  readonly inStockCount = computed(() => this._items().filter(i => i.stock > 0).length);
+  readonly totalCount    = computed(() => this._items().length);
+  readonly inStockCount  = computed(() => this._items().filter(i => i.stock > 0).length);
+  readonly outOfStockCount = computed(() => this._items().filter(i => i.stock === 0).length);
   readonly lowStockCount = computed(() =>
     this._items().filter(i => i.stock > 0 && i.stock <= 5).length,
+  );
+  readonly totalStockValue = computed(() =>
+    this._items().reduce((s, i) => s + i.stock * i.cost_price, 0),
+  );
+  readonly totalRetailValue = computed(() =>
+    this._items().reduce((s, i) => s + i.stock * i.selling_price, 0),
   );
 
   /**

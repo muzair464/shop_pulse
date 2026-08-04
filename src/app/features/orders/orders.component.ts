@@ -1,14 +1,15 @@
 import {
   Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
+  HostListener, ViewChild, ElementRef,
 } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { LucideAngularModule, Eye, Printer, Filter } from 'lucide-angular';
+import { FormsModule } from '@angular/forms';
+import { LucideAngularModule, Eye, Printer, Filter, Search } from 'lucide-angular';
 import { OrdersStore } from '../../core/orders.store';
 import { ShopStore } from '../../core/shop.store';
 import { ApiClient } from '../../core/api.client';
 import { ReceiptService } from '../../core/receipt.service';
 import { BadgeComponent } from '../../shared/badge.component';
-import { ShopStatsBarComponent } from '../../shared/shop-stats-bar.component';
 import { PaginationComponent } from '../../shared/pagination.component';
 import { ExportCsvButtonComponent } from '../../shared/export-csv-button.component';
 import type { OrderRow } from '../../core/database.types';
@@ -28,15 +29,15 @@ interface OrderDetail extends OrderRow {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DatePipe, DecimalPipe, LucideAngularModule,
-    BadgeComponent, ShopStatsBarComponent, PaginationComponent, ExportCsvButtonComponent,
+    DatePipe, DecimalPipe, FormsModule, LucideAngularModule,
+    BadgeComponent, PaginationComponent, ExportCsvButtonComponent,
   ],
   template: `
     <div>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 class="text-xl font-bold text-gray-900">Orders</h1>
-          <p class="mt-0.5 text-sm text-gray-500">{{ ordersStore.orders().length }} total orders</p>
+          <p class="mt-0.5 text-sm text-gray-500">{{ ordersStore.totalOrderCount() }} total orders</p>
         </div>
         <div class="flex items-center gap-2">
           <app-export-csv-button apiPath="/api/v1/orders/export" label="Export CSV" />
@@ -51,7 +52,49 @@ interface OrderDetail extends OrderRow {
         </div>
       </div>
 
-      <app-shop-stats-bar />
+      <!-- Orders-specific stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Today's Orders</p>
+          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ ordersStore.todaysOrderCount() }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Today's Revenue</p>
+          <p class="text-xl font-bold text-primary-700 tabular-nums">{{ ordersStore.todaysRevenue() | number:'1.0-0' }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Total Revenue</p>
+          <p class="text-xl font-bold text-green-600 tabular-nums">{{ ordersStore.totalRevenue() | number:'1.0-0' }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Avg. Order</p>
+          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ ordersStore.avgOrderValue() | number:'1.0-0' }}</p>
+        </div>
+        <div class="card p-3 text-center">
+          <p class="text-xs text-gray-500 mb-0.5">Total Discounts</p>
+          <p class="text-xl font-bold text-yellow-600 tabular-nums">{{ ordersStore.totalDiscount() | number:'1.0-0' }}</p>
+        </div>
+      </div>
+
+      <!-- Search + filter bar -->
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <div class="relative flex-1 min-w-[160px]">
+          <lucide-icon [img]="SearchIcon" size="15"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            aria-hidden="true" />
+          <input #searchInput type="search" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event); currentPage.set(0)"
+            placeholder="  Search order no, customer… (Alt+K)"
+            class="form-input pl-9 text-sm" aria-label="Search orders" />
+        </div>
+        <button type="button" (click)="filterOpen.set(!filterOpen())" class="btn-secondary shrink-0"
+          [attr.aria-expanded]="filterOpen()">
+          <lucide-icon [img]="FilterIcon" size="15" aria-hidden="true" />
+          Filters
+          @if (hasActiveFilter()) {
+            <span class="w-2 h-2 rounded-full bg-primary-500 ml-0.5"></span>
+          }
+        </button>
+      </div>
 
       @if (filterOpen()) {
         <div class="card p-4 mb-4 flex flex-wrap gap-4">
@@ -304,16 +347,28 @@ export class OrdersComponent implements OnInit {
   private readonly api     = inject(ApiClient);
   private readonly receipt = inject(ReceiptService);
 
+  @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
+
   readonly EyeIcon     = Eye;
   readonly PrinterIcon = Printer;
   readonly FilterIcon  = Filter;
+  readonly SearchIcon  = Search;
 
+  readonly searchQuery   = signal('');
   readonly filterOpen    = signal(false);
   readonly channelFilter = signal<ChannelFilter>('all');
   readonly methodFilter  = signal<MethodFilter>('all');
   readonly currentPage   = signal(0);
   readonly pageSize      = 20;
   readonly detailOrder   = signal<OrderDetail | null>(null);
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (e.altKey && e.key === 'k') {
+      e.preventDefault();
+      this.searchInputRef?.nativeElement.focus();
+    }
+  }
 
   readonly channelOptions = [
     { value: 'all' as ChannelFilter, label: 'All' },
@@ -335,8 +390,17 @@ export class OrdersComponent implements OnInit {
     let orders = this.ordersStore.orders();
     const ch = this.channelFilter();
     const pm = this.methodFilter();
+    const q  = this.searchQuery().toLowerCase().trim();
     if (ch !== 'all') orders = orders.filter(o => o.channel === ch);
     if (pm !== 'all') orders = orders.filter(o => o.payment_method === pm);
+    if (q) orders = orders.filter(o =>
+      o.order_number.toLowerCase().includes(q)
+      || (o.customer_name  ?? '').toLowerCase().includes(q)
+      || (o.customer_phone ?? '').includes(q)
+      || (o.customer_cnic  ?? '').includes(q),
+    );
+    return orders;
+  });
     return orders;
   });
 
