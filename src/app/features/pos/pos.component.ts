@@ -563,7 +563,12 @@ export class PosComponent implements OnInit {
       document.body.appendChild(container);
     }
     container.innerHTML = html;
+
+    // Set page title to order number so "Save as PDF" defaults to that filename.
+    const prevTitle = document.title;
+    document.title = order.order_number;
     window.print();
+    document.title = prevTitle;
   }
 
   async completeSale(): Promise<void> {
