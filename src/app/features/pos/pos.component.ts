@@ -482,8 +482,8 @@ export class PosComponent implements OnInit {
   }
 
   paymentLabel(method: string): string {
-    return ({ CASH: 'Cash', CARD_KHATA: 'Card / Khata', DIGITAL_PAY: 'Digital Pay' }
-      as Record<string, string>)[method] ?? method;
+    const map: Record<string, string> = { CASH: 'Cash', CARD_KHATA: 'Card / Khata', DIGITAL_PAY: 'Digital Pay' };
+    return map[method] ?? method;
   }
 
   private printReceipt(order: {
