@@ -178,6 +178,23 @@ interface OrderDetail extends OrderRow {
             <p class="text-xs text-gray-400 mt-0.5">{{ detailOrder()!.created_at | date:'MMMM d, y — h:mm a' }}</p>
           </div>
           <div class="p-6 space-y-4">
+            <!-- Customer info -->
+            @if (detailOrder()!.customer_name || detailOrder()!.customer_phone || detailOrder()!.customer_cnic) {
+              <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Customer</p>
+                <div class="space-y-0.5 text-sm text-gray-700">
+                  @if (detailOrder()!.customer_name) {
+                    <p>{{ detailOrder()!.customer_name }}</p>
+                  }
+                  @if (detailOrder()!.customer_phone) {
+                    <p class="text-gray-500">{{ detailOrder()!.customer_phone }}</p>
+                  }
+                  @if (detailOrder()!.customer_cnic) {
+                    <p class="text-gray-500">CNIC: {{ detailOrder()!.customer_cnic }}</p>
+                  }
+                </div>
+              </div>
+            }
             @if (detailOrder()!.order_items.length) {
               <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Items</p>

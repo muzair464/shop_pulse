@@ -78,28 +78,120 @@
   .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
 }
 
-/* ─── Print stylesheet ───────────────────────────────────────── */
+/* ─── Print stylesheet — 80mm thermal receipt ────────────────── */
+
+/* Hide receipt div on screen */
+.print-receipt { display: none; }
+
 @media print {
-  /* Hide everything except the receipt */
-  body > * { display: none !important; }
+  /* Hide everything on the page except the receipt */
+  body > *       { display: none !important; }
   .print-receipt { display: block !important; }
 
+  @page {
+    size: 80mm auto;   /* 80mm wide, auto height */
+    margin: 0;
+  }
+
   .print-receipt {
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    width: 80mm;
-    margin: 0 auto;
-    padding: 8px;
-    color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    width: 72mm;          /* 80mm roll minus ~8mm margins */
+    margin: 4mm auto;
+    padding: 0;
+    color: #000 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .print-receipt .receipt-divider {
+  /* ── Brand header ── */
+  .print-receipt .rct-brand {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  /* ── Shop name ── */
+  .print-receipt .rct-shop-name {
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1px;
+  }
+
+  /* ── Generic centred small line (address, phone) ── */
+  .print-receipt .rct-line {
+    font-size: 10px;
+    text-align: center;
+    margin-bottom: 1px;
+  }
+
+  /* ── Dashed divider ── */
+  .print-receipt .rct-divider {
+    border: none;
     border-top: 1px dashed #000;
-    margin: 6px 0;
+    margin: 4px 0;
   }
 
-  .print-receipt .receipt-row {
+  /* ── Key-value row ── */
+  .print-receipt .rct-row {
     display: flex;
     justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 1px;
+  }
+
+  /* ── Section label (ITEMS, CUSTOMER) ── */
+  .print-receipt .rct-section-label {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin: 2px 0 1px;
+  }
+
+  /* ── Item name (full width) ── */
+  .print-receipt .rct-item-name {
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 0;
+  }
+
+  /* ── Item qty × price → total row ── */
+  .print-receipt .rct-item-detail {
+    font-size: 10px;
+    color: #333 !important;
+    margin-bottom: 2px;
+    padding-left: 4px;
+  }
+
+  /* ── Discount row (green not available — use normal) ── */
+  .print-receipt .rct-discount span:last-child::before { content: '-'; }
+  .print-receipt .rct-discount span:last-child::before { content: ''; } /* reset */
+
+  /* ── Grand total row ── */
+  .print-receipt .rct-total {
+    font-size: 14px;
+    font-weight: 900;
+    margin-top: 2px;
+  }
+
+  /* ── Footer ── */
+  .print-receipt .rct-footer {
+    font-size: 10px;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .print-receipt .rct-footer-brand {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+    margin-bottom: 6mm; /* feed paper past cutter */
   }
 }

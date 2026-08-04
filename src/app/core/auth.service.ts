@@ -111,7 +111,7 @@ export class AuthService implements OnDestroy {
     try {
       const data = await this.api.post<{ user: SessionUser; shop: SessionShop }>(
         '/api/v1/auth/signin',
-        { email: options.email, password: options.password },
+        { email: options.email, password: options.password, rememberDevice: options.rememberDevice },
       );
       this._session.set({ authenticated: true, user: data.user, shop: data.shop });
       return { error: null };

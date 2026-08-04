@@ -67,6 +67,7 @@ export interface OrderRow {
   order_number:     string;
   customer_name:    string | null;
   customer_phone:   string | null;
+  customer_cnic:    string | null;
   channel:          OrderChannel;
   payment_method:   PaymentMethod;
   subtotal:         number;

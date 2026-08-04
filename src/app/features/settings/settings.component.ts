@@ -4,21 +4,13 @@ import {
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   LucideAngularModule,
-  Save, Loader2, Eye, EyeOff, Trash2, Upload, RefreshCw, Download, Printer, Shield, Monitor,
+  Save, Loader2, Eye, EyeOff, Trash2, Upload, Download, Printer, Shield, Monitor,
 } from 'lucide-angular';
 import { ShopStore } from '../../core/shop.store';
 import { AuthService } from '../../core/auth.service';
 import { ApiClient, ApiError } from '../../core/api.client';
 import { ToastService } from '../../core/toast.service';
 import { ExportCsvButtonComponent } from '../../shared/export-csv-button.component';
-
-interface DeviceInfo {
-  deviceId: string;
-  deviceName: string;
-  lastActiveAt: string;
-  createdAt: string;
-  current: boolean;
-}
 
 @Component({
   selector: 'app-settings',
@@ -130,44 +122,6 @@ interface DeviceInfo {
         </div>
       </div>
 
-      <!-- Active Devices -->
-      <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <lucide-icon [img]="MonitorIcon" size="16" class="text-gray-400" aria-hidden="true" />
-            Active Devices
-          </h2>
-          <button type="button" (click)="loadDevices()" class="btn-secondary py-1.5 text-xs">
-            <lucide-icon [img]="RefreshIcon" size="13" aria-hidden="true" />
-            Refresh
-          </button>
-        </div>
-        @if (devicesLoading()) {
-          <div class="space-y-2">
-            @for (i of [1,2]; track i) { <div class="h-12 bg-gray-100 rounded-lg animate-pulse"></div> }
-          </div>
-        } @else if (devices().length === 0) {
-          <p class="text-sm text-gray-400">No active devices found.</p>
-        } @else {
-          <div class="space-y-2">
-            @for (d of devices(); track d.deviceId) {
-              <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div>
-                  <p class="text-sm font-medium text-gray-800">
-                    {{ d.deviceName }}
-                    @if (d.current) { <span class="ml-2 text-xs text-primary-600 font-semibold">(this device)</span> }
-                  </p>
-                  <p class="text-xs text-gray-400">Last active: {{ formatDate(d.lastActiveAt) }}</p>
-                </div>
-                @if (!d.current) {
-                  <button type="button" (click)="revokeDevice(d)" class="btn-danger py-1.5 px-3 text-xs">Revoke</button>
-                }
-              </div>
-            }
-          </div>
-        }
-      </div>
-
       <!-- Data Export -->
       <div class="card p-6">
         <h2 class="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
@@ -231,7 +185,6 @@ export class SettingsComponent implements OnInit {
   readonly EyeOffIcon    = EyeOff;
   readonly Trash2Icon    = Trash2;
   readonly UploadIcon    = Upload;
-  readonly RefreshIcon   = RefreshCw;
   readonly DownloadIcon  = Download;
   readonly PrinterIcon   = Printer;
   readonly ShieldIcon    = Shield;
@@ -243,8 +196,6 @@ export class SettingsComponent implements OnInit {
   readonly showNewPass         = signal(false);
   readonly qrPreviewUrl        = signal<string | null>(null);
   readonly qrSaving            = signal(false);
-  readonly devices             = signal<DeviceInfo[]>([]);
-  readonly devicesLoading      = signal(false);
   readonly autoPrintReceipt    = signal(true);
   readonly autoExportFrequency = signal('weekly');
 
@@ -264,7 +215,6 @@ export class SettingsComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadSettings();
-    await this.loadDevices();
   }
 
   private async loadSettings(): Promise<void> {
@@ -354,24 +304,6 @@ export class SettingsComponent implements OnInit {
     finally { this.qrSaving.set(false); }
   }
 
-  async loadDevices(): Promise<void> {
-    this.devicesLoading.set(true);
-    try {
-      const data = await this.api.get<DeviceInfo[]>('/api/v1/devices');
-      this.devices.set(data);
-    } catch { this.toast.error('Failed to load devices.'); }
-    finally { this.devicesLoading.set(false); }
-  }
-
-  async revokeDevice(device: DeviceInfo): Promise<void> {
-    if (!confirm(`Revoke access for "${device.deviceName}"?`)) return;
-    try {
-      await this.api.delete(`/api/v1/devices/${device.deviceId}`);
-      this.devices.update(ds => ds.filter(d => d.deviceId !== device.deviceId));
-      this.toast.success('Device revoked.');
-    } catch { this.toast.error('Failed to revoke device.'); }
-  }
-
   async updateAutoExport(event: Event): Promise<void> {
     const val = (event.target as HTMLSelectElement).value;
     this.autoExportFrequency.set(val);
@@ -390,11 +322,5 @@ export class SettingsComponent implements OnInit {
       this.autoPrintReceipt.set(!next);
       this.toast.error('Failed to update print setting.');
     }
-  }
-
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
-    });
   }
 }
