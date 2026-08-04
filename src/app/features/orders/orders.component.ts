@@ -6,6 +6,7 @@ import { LucideAngularModule, Eye, Printer, Filter } from 'lucide-angular';
 import { OrdersStore } from '../../core/orders.store';
 import { ShopStore } from '../../core/shop.store';
 import { ApiClient } from '../../core/api.client';
+import { ReceiptService } from '../../core/receipt.service';
 import { BadgeComponent } from '../../shared/badge.component';
 import { ShopStatsBarComponent } from '../../shared/shop-stats-bar.component';
 import { PaginationComponent } from '../../shared/pagination.component';
@@ -300,7 +301,8 @@ interface OrderDetail extends OrderRow {
 export class OrdersComponent implements OnInit {
   readonly ordersStore = inject(OrdersStore);
   private readonly shopStore = inject(ShopStore);
-  private readonly api = inject(ApiClient);
+  private readonly api     = inject(ApiClient);
+  private readonly receipt = inject(ReceiptService);
 
   readonly EyeIcon     = Eye;
   readonly PrinterIcon = Printer;
@@ -356,8 +358,9 @@ export class OrdersComponent implements OnInit {
     this.detailOrder.set(detail);
   }
 
-  printOrder(order: OrderRow): void {
-    void this.viewOrder(order).then(() => setTimeout(() => window.print(), 100));
+  async printOrder(order: OrderRow): Promise<void> {
+    const detail = await this.api.get<OrderDetail>(`/api/v1/orders/${order.id}`);
+    this.receipt.print(detail);
   }
 
   paymentLabel(method: string): string {

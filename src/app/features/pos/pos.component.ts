@@ -12,6 +12,7 @@ import { InventoryStore } from '../../core/inventory.store';
 import { ShopStore } from '../../core/shop.store';
 import { ToastService } from '../../core/toast.service';
 import { ApiClient, ApiError } from '../../core/api.client';
+import { ReceiptService } from '../../core/receipt.service';
 import type { InventoryItemRow } from '../../core/database.types';
 
 type PaymentMethodType = 'CASH' | 'CARD_KHATA' | 'DIGITAL_PAY';
@@ -315,9 +316,10 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
 export class PosComponent implements OnInit {
   private readonly inventoryStore = inject(InventoryStore);
   readonly shopStore   = inject(ShopStore);
-  private readonly toast = inject(ToastService);
-  private readonly api   = inject(ApiClient);
-  private readonly cdr   = inject(ChangeDetectorRef);
+  private readonly toast   = inject(ToastService);
+  private readonly api     = inject(ApiClient);
+  private readonly receipt = inject(ReceiptService);
+  private readonly cdr     = inject(ChangeDetectorRef);
 
   @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
 
@@ -496,65 +498,22 @@ export class PosComponent implements OnInit {
 
   private printReceipt(order: {
     order_number: string; created_at: string;
-    subtotal: number; discount: number; total: number; paymentMethod: string;
-    customerName: string | null; customerPhone: string | null; customerCnic: string | null;
-    items: Array<{ nameSnapshot: string; description: string | null; qty: number; unitPrice: number; lineTotal: number }>;
+    subtotal: number; discount: number; total: number; payment_method: string;
+    customer_name: string | null; customer_phone: string | null; customer_cnic: string | null;
+    items: Array<{ name_snapshot: string; description: string | null; qty: number; unit_price: number; line_total: number }>;
   }): void {
-    const shop = this.shopStore.shop();
-    const fmt  = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    const date = new Date(order.created_at);
-    const d = (cls: string, inner: string) => `<div class="${cls}">${inner}</div>`;
-    const r = (l: string, v: string) =>
-      `<div class="rct-row"><span>${l}</span><span>${v}</span></div>`;
-
-    let html = '';
-    html += d('rct-brand', 'ShopPulse');
-    html += '<div class="rct-divider"></div>';
-    html += d('rct-shop-name', shop?.shopName ?? '');
-    if (shop?.phone)   html += d('rct-line', `Tel: ${shop.phone}`);
-    if (shop?.address) html += d('rct-line', shop.address);
-    html += '<div class="rct-divider"></div>';
-    html += r('Order #', order.order_number);
-    html += r('Date', date.toLocaleDateString('en-GB'));
-    html += r('Time', date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
-    html += r('Payment', this.paymentLabel(order.paymentMethod));
-    html += '<div class="rct-divider"></div>';
-    if (order.customerName || order.customerPhone || order.customerCnic) {
-      html += d('rct-section-label', 'CUSTOMER');
-      if (order.customerName)  html += r('Name',  order.customerName);
-      if (order.customerPhone) html += r('Phone', order.customerPhone);
-      if (order.customerCnic)  html += r('CNIC',  order.customerCnic);
-      html += '<div class="rct-divider"></div>';
-    }
-    html += d('rct-section-label', 'ITEMS');
-    for (const line of order.items) {
-      html += d('rct-item-name', line.nameSnapshot);
-      if (line.description) html += d('rct-item-desc', line.description);
-      html += `<div class="rct-row rct-item-detail">` +
-        `<span>${line.qty} x ${fmt(line.unitPrice)}</span>` +
-        `<span>${fmt(line.lineTotal)}</span></div>`;
-    }
-    html += '<div class="rct-divider"></div>';
-    html += r('Subtotal', fmt(order.subtotal));
-    if (order.discount > 0) html += r('Discount', `-${fmt(order.discount)}`);
-    html += '<div class="rct-divider"></div>';
-    html += `<div class="rct-row rct-total"><span>TOTAL (PKR)</span><span>${fmt(order.total)}</span></div>`;
-    html += '<div class="rct-divider"></div>';
-    html += d('rct-footer', 'Thank you for your purchase!');
-    html += d('rct-footer rct-footer-brand', 'Powered by ShopPulse');
-
-    let container = document.getElementById('sp-receipt-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'sp-receipt-container';
-      container.className = 'print-receipt';
-      document.body.appendChild(container);
-    }
-    container.innerHTML = html;
-    const prev = document.title;
-    document.title = order.order_number;
-    window.print();
-    document.title = prev;
+    this.receipt.print({
+      order_number:  order.order_number,
+      created_at:    order.created_at,
+      subtotal:      order.subtotal,
+      discount:      order.discount,
+      total:         order.total,
+      payment_method: order.payment_method,
+      customer_name:  order.customer_name,
+      customer_phone: order.customer_phone,
+      customer_cnic:  order.customer_cnic,
+      order_items:   order.items,
+    });
   }
 
   async completeSale(): Promise<void> {
@@ -590,16 +549,21 @@ export class PosComponent implements OnInit {
       this.cartExpanded.set(false);
       this.toast.success(`Order ${o.order_number} completed.`);
       this.printReceipt({
-        order_number: o.order_number, created_at: o.created_at,
-        subtotal: o.subtotal ?? sub, discount: o.discount ?? disc,
-        total: o.total ?? Math.max(0, sub - disc),
-        paymentMethod: o.payment_method ?? this.paymentMethod(),
-        customerName: o.customer_name ?? cName,
-        customerPhone: o.customer_phone ?? cPhone,
-        customerCnic: o.customer_cnic ?? cCnic,
+        order_number:   o.order_number,
+        created_at:     o.created_at,
+        subtotal:       o.subtotal ?? sub,
+        discount:       o.discount ?? disc,
+        total:          o.total ?? Math.max(0, sub - disc),
+        payment_method: o.payment_method ?? this.paymentMethod(),
+        customer_name:  o.customer_name ?? cName,
+        customer_phone: o.customer_phone ?? cPhone,
+        customer_cnic:  o.customer_cnic ?? cCnic,
         items: items.map(i => ({
-          nameSnapshot: i.nameSnapshot, description: i.description,
-          qty: i.qty, unitPrice: i.unitPrice, lineTotal: i.qty * i.unitPrice,
+          name_snapshot: i.nameSnapshot,
+          description:   i.description,
+          qty:           i.qty,
+          unit_price:    i.unitPrice,
+          line_total:    i.qty * i.unitPrice,
         })),
       });
     } catch (err) {
