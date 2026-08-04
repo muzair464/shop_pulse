@@ -83,7 +83,65 @@ interface OrderDetail extends OrderRow {
         </div>
       }
 
-      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white mb-4">
+      <!-- Mobile: card list -->
+      <div class="sm:hidden space-y-2 mb-4">
+        @if (ordersStore.loading()) {
+          @for (i of [1,2,3]; track i) {
+            <div class="card p-4 animate-pulse space-y-2">
+              <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-3 bg-gray-100 rounded w-3/4"></div>
+            </div>
+          }
+        } @else if (pagedOrders().length === 0) {
+          <p class="text-center text-sm text-gray-400 py-10">No orders found.</p>
+        } @else {
+          @for (order of pagedOrders(); track order.id) {
+            <div class="card p-3">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="min-w-0">
+                  <span class="font-mono text-sm font-bold text-primary-700 truncate block">
+                    {{ order.order_number }}
+                  </span>
+                  <span class="text-xs text-gray-400">
+                    {{ order.created_at | date:'MMM d, y · h:mm a' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" (click)="viewOrder(order)"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50"
+                    aria-label="View order">
+                    <lucide-icon [img]="EyeIcon" size="14" aria-hidden="true" />
+                  </button>
+                  <button type="button" (click)="printOrder(order)"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                    aria-label="Print receipt">
+                    <lucide-icon [img]="PrinterIcon" size="14" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
+                <app-badge [variant]="order.channel === 'POS' ? 'blue' : 'green'">{{ order.channel }}</app-badge>
+                <span>{{ paymentLabel(order.payment_method) }}</span>
+                @if (!order.payment_verified) {
+                  <app-badge variant="yellow">Unverified</app-badge>
+                }
+                <span class="ml-auto font-semibold text-gray-900 tabular-nums">
+                  {{ order.total | number:'1.0-0' }}
+                  @if (order.discount > 0) {
+                    <span class="text-gray-400 font-normal"> (-{{ order.discount | number:'1.0-0' }})</span>
+                  }
+                </span>
+              </div>
+              @if (order.customer_name) {
+                <p class="text-xs text-gray-500 mt-1 truncate">{{ order.customer_name }}</p>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Desktop: table -->
+      <div class="hidden sm:block overflow-hidden rounded-lg border border-gray-200 bg-white mb-4">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -113,27 +171,27 @@ interface OrderDetail extends OrderRow {
               } @else {
                 @for (order of pagedOrders(); track order.id) {
                   <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3">
-                      <span class="font-mono text-sm font-semibold text-primary-700">{{ order.order_number }}</span>
+                    <td class="px-4 py-3 max-w-[140px]">
+                      <span class="font-mono text-sm font-semibold text-primary-700 truncate block">{{ order.order_number }}</span>
                       @if (!order.payment_verified) {
-                        <app-badge variant="yellow" class="ml-2">Unverified</app-badge>
+                        <app-badge variant="yellow">Unverified</app-badge>
                       }
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                       {{ order.created_at | date:'MMM d, y' }}<br/>
                       <span class="text-xs text-gray-400">{{ order.created_at | date:'h:mm a' }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-700">
-                      {{ order.customer_name || '—' }}
+                    <td class="px-4 py-3 text-sm text-gray-700 max-w-[140px]">
+                      <p class="truncate">{{ order.customer_name || '—' }}</p>
                       @if (order.customer_phone) {
-                        <div class="text-xs text-gray-400">{{ order.customer_phone }}</div>
+                        <p class="text-xs text-gray-400 truncate">{{ order.customer_phone }}</p>
                       }
                     </td>
                     <td class="px-4 py-3">
                       <app-badge [variant]="order.channel === 'POS' ? 'blue' : 'green'">{{ order.channel }}</app-badge>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ paymentLabel(order.payment_method) }}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900 tabular-nums">
+                    <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ paymentLabel(order.payment_method) }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900 tabular-nums whitespace-nowrap">
                       {{ order.total | number:'1.0-0' }}
                       @if (order.discount > 0) {
                         <div class="text-xs text-gray-400 font-normal">-{{ order.discount | number:'1.0-0' }} disc.</div>

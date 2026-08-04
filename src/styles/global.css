@@ -76,6 +76,20 @@
   .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
   .badge-red    { @apply badge bg-red-100 text-red-800; }
   .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
+
+  /* ── Text-overflow helpers ── */
+  .text-truncate {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  /* Scrollbar hide (used for horizontal tab strips) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ─── Print stylesheet — 80mm thermal receipt ────────────────── */

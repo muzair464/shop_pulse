@@ -62,8 +62,61 @@ type TabFilter = 'all' | 'NEW' | 'USED';
         }
       </div>
 
-      <!-- Table -->
-      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white mb-4">
+      <!-- Mobile: card list -->
+      <div class="sm:hidden space-y-2 mb-4">
+        @if (inventoryStore.loading()) {
+          @for (i of [1,2,3]; track i) {
+            <div class="card p-4 animate-pulse space-y-2">
+              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+              <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+            </div>
+          }
+        } @else if (pagedItems().length === 0) {
+          <p class="text-center text-sm text-gray-400 py-10">No inventory items found.</p>
+        } @else {
+          @for (item of pagedItems(); track item.id) {
+            <div class="card p-3">
+              <div class="flex items-start justify-between gap-2 mb-1.5">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-gray-900 truncate">{{ item.name }}</p>
+                  @if (item.imei) {
+                    <p class="text-xs text-gray-400 font-mono truncate">{{ item.imei }}</p>
+                  }
+                  <p class="text-xs text-gray-400 truncate">{{ item.category }}</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" (click)="openEditModal(item)"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50"
+                    aria-label="Edit item">
+                    <lucide-icon [img]="PencilIcon" size="14" aria-hidden="true" />
+                  </button>
+                  <button type="button" (click)="deleteItem(item)"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                    aria-label="Delete item">
+                    <lucide-icon [img]="Trash2Icon" size="14" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <app-badge [variant]="item.classification === 'NEW' ? 'blue' : 'yellow'">
+                  {{ item.classification === 'NEW' ? 'Brand New' : 'Pre-Owned' }}
+                </app-badge>
+                <span [class.text-red-600]="item.stock === 0"
+                      [class.text-yellow-600]="item.stock > 0 && item.stock <= 5"
+                      [class.text-gray-700]="item.stock > 5"
+                      class="font-semibold tabular-nums">
+                  {{ item.stock }} in stock
+                </span>
+                <span class="text-gray-400">Cost: {{ item.cost_price | number:'1.0-0' }}</span>
+                <span class="font-medium text-gray-900">Price: {{ item.selling_price | number:'1.0-0' }}</span>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Desktop: table -->
+      <div class="hidden sm:block overflow-hidden rounded-lg border border-gray-200 bg-white mb-4">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -88,23 +141,23 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                 }
               } @else if (pagedItems().length === 0) {
                 <tr>
-                  <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">
-                    No inventory items found.
-                  </td>
+                  <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">No inventory items found.</td>
                 </tr>
               } @else {
                 @for (item of pagedItems(); track item.id) {
                   <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3">
-                      <div class="font-medium text-sm text-gray-900">{{ item.name }}</div>
+                    <td class="px-4 py-3 max-w-[200px]">
+                      <div class="font-medium text-sm text-gray-900 truncate">{{ item.name }}</div>
                       @if (item.imei) {
-                        <div class="text-xs text-gray-400 font-mono mt-0.5">{{ item.imei }}</div>
+                        <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ item.imei }}</div>
                       }
                       @if (item.sku) {
-                        <div class="text-xs text-gray-400 mt-0.5">SKU: {{ item.sku }}</div>
+                        <div class="text-xs text-gray-400 mt-0.5 truncate">SKU: {{ item.sku }}</div>
                       }
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ item.category }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600 max-w-[120px]">
+                      <span class="truncate block">{{ item.category }}</span>
+                    </td>
                     <td class="px-4 py-3">
                       <app-badge [variant]="item.classification === 'NEW' ? 'blue' : 'yellow'">
                         {{ item.classification === 'NEW' ? 'Brand New' : 'Pre-Owned' }}
@@ -112,27 +165,23 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                     </td>
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
-                        <span
-                          class="text-sm font-semibold tabular-nums"
+                        <span class="text-sm font-semibold tabular-nums"
                           [class.text-red-600]="item.stock === 0"
                           [class.text-yellow-600]="item.stock > 0 && item.stock <= 5"
-                          [class.text-gray-900]="item.stock > 5"
-                        >{{ item.stock }}</span>
-                        <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            class="h-full rounded-full transition-all"
+                          [class.text-gray-900]="item.stock > 5">{{ item.stock }}</span>
+                        <div class="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full transition-all"
                             [class.bg-red-500]="item.stock === 0"
                             [class.bg-yellow-400]="item.stock > 0 && item.stock <= 5"
                             [class.bg-green-500]="item.stock > 5"
-                            [style.width]="stockBarWidth(item.stock) + '%'"
-                          ></div>
+                            [style.width]="stockBarWidth(item.stock) + '%'"></div>
                         </div>
                       </div>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600 tabular-nums">
+                    <td class="px-4 py-3 text-sm text-gray-600 tabular-nums whitespace-nowrap">
                       {{ item.cost_price | number:'1.0-0' }}
                     </td>
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900 tabular-nums">
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap">
                       {{ item.selling_price | number:'1.0-0' }}
                     </td>
                     <td class="px-4 py-3">
