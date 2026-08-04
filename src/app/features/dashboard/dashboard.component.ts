@@ -6,13 +6,15 @@ import { StatCardComponent } from './stat-card.component';
 import { RevenueChartComponent } from './revenue-chart.component';
 import { ShopStore } from '../../core/shop.store';
 import { InventoryStore } from '../../core/inventory.store';
+import { OrdersStore } from '../../core/orders.store';
 import { ApiClient } from '../../core/api.client';
 
 interface DashboardStats {
-  newOrders: number;
-  revenueToday: number;
+  newOrders:           number;
+  revenueToday:        number;
   totalInventoryItems: number;
-  lowStockCount: number;
+  lowStockCount:       number;
+  revenueSeries:       unknown[];
 }
 
 @Component({
@@ -41,12 +43,12 @@ interface DashboardStats {
           iconBgClass="bg-green-100" iconColorClass="text-green-600"
         />
         <app-stat-card
-          label="Online" [value]="inventory.inStockCount()"
+          label="In Stock" [value]="inventory.inStockCount()"
           [icon]="WifiIcon" subtext="Items in stock"
           iconBgClass="bg-emerald-100" iconColorClass="text-emerald-600"
         />
         <app-stat-card
-          label="Low Stock" [value]="stats().lowStockCount"
+          label="Low Stock" [value]="inventory.lowStockCount()"
           [icon]="WifiOffIcon" subtext="Need restocking"
           iconBgClass="bg-yellow-100" iconColorClass="text-yellow-600"
         />
@@ -57,41 +59,46 @@ interface DashboardStats {
   `,
 })
 export class DashboardComponent implements OnInit {
+  // Stores are already loaded by AuthenticatedLayoutComponent — read signals directly.
   private readonly shopStore = inject(ShopStore);
-  private readonly api       = inject(ApiClient);
   readonly inventory         = inject(InventoryStore);
+  private readonly orders    = inject(OrdersStore);
+  private readonly api       = inject(ApiClient);
 
   readonly ShoppingBagIcon = ShoppingBag;
   readonly UsersIcon       = Users;
   readonly WifiIcon        = Wifi;
   readonly WifiOffIcon     = WifiOff;
+  readonly shopName        = this.shopStore.shopName;
 
-  readonly shopName = this.shopStore.shopName;
-
+  // Stats are pre-seeded from the already-loaded signals so the page
+  // renders instantly. The network call updates them in the background.
   readonly stats = signal<DashboardStats>({
-    newOrders: 0, revenueToday: 0,
-    totalInventoryItems: 0, lowStockCount: 0,
+    newOrders:           this.orders.todaysOrderCount(),
+    revenueToday:        this.orders.todaysRevenue(),
+    totalInventoryItems: this.inventory.totalCount(),
+    lowStockCount:       this.inventory.lowStockCount(),
+    revenueSeries:       [],
   });
 
-  async ngOnInit(): Promise<void> {
-    if (!this.shopStore.shopId()) await this.shopStore.load();
-    const shopId = this.shopStore.shopId();
-    if (!shopId) return;
+  ngOnInit(): void {
+    // Fire the stats request in the background — does NOT block rendering.
+    // The page is already showing data from cached signals above.
+    void this._loadStats();
+  }
 
-    if (this.inventory.items().length === 0) await this.inventory.load(shopId);
-
+  private async _loadStats(): Promise<void> {
     try {
-      const data = await this.api.get<DashboardStats & { revenueSeries: unknown[] }>(
-        '/api/v1/dashboard/stats',
-      );
+      const data = await this.api.get<DashboardStats>('/api/v1/dashboard/stats');
       this.stats.set({
-        newOrders: data.newOrders ?? 0,
-        revenueToday: data.revenueToday ?? 0,
-        totalInventoryItems: data.totalInventoryItems ?? 0,
-        lowStockCount: data.lowStockCount ?? 0,
+        newOrders:           data.newOrders           ?? 0,
+        revenueToday:        data.revenueToday         ?? 0,
+        totalInventoryItems: data.totalInventoryItems  ?? 0,
+        lowStockCount:       data.lowStockCount        ?? 0,
+        revenueSeries:       data.revenueSeries        ?? [],
       });
     } catch {
-      // Stats are non-critical — silently ignore
+      // Non-critical — cached values from signals remain on screen.
     }
   }
 

@@ -43,11 +43,12 @@ export class ShopStore {
   readonly paymentQrDataUri = computed(() => this._shop()?.paymentQrDataUri ?? null);
 
   async load(): Promise<void> {
-    if (this._shop() && this.auth.isAuthenticated()) return;
-
     // ── Step 1: instant paint from IDB ────────────────────────────────────
+    // Always attempt IDB read + network refresh (no early-exit guard).
+    // This ensures settings always reflect the latest value after edits
+    // on another device, while still rendering instantly from cache.
     const shopId = this.auth.currentShop()?.id;
-    if (shopId) {
+    if (shopId && !this._shop()) {
       const cached = await this.localDb.getShop(shopId);
       if (cached) this._shop.set(cached);
     }

@@ -214,24 +214,24 @@ export class SettingsComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    await this.loadSettings();
+    // Step 1: populate form instantly from ShopStore (already in IDB/memory).
+    this._syncFromStore();
+    // Step 2: silently refresh shop data in background so we always show latest.
+    void this.shopStore.load().then(() => this._syncFromStore());
   }
 
-  private async loadSettings(): Promise<void> {
-    try {
-      const data = await this.api.get<{
-        shopName: string; phone: string | null; address: string | null;
-        paymentQrDataUri: string | null; autoExportFrequency: string; autoPrintReceipt: boolean;
-      }>('/api/v1/settings');
-      this.profileForm.patchValue({
-        shopName: data.shopName, phone: data.phone ?? '', address: data.address ?? '',
-      });
-      this.qrPreviewUrl.set(data.paymentQrDataUri);
-      this.autoExportFrequency.set(data.autoExportFrequency);
-      this.autoPrintReceipt.set(data.autoPrintReceipt);
-    } catch {
-      this.toast.error('Failed to load settings.');
-    }
+  /** Read current ShopStore state into the form and local signals. */
+  private _syncFromStore(): void {
+    const shop = this.shopStore.shop();
+    if (!shop) return;
+    this.profileForm.patchValue({
+      shopName: shop.shopName,
+      phone:    shop.phone    ?? '',
+      address:  shop.address  ?? '',
+    });
+    this.qrPreviewUrl.set(shop.paymentQrDataUri);
+    this.autoExportFrequency.set(shop.autoExportFrequency);
+    this.autoPrintReceipt.set(shop.autoPrintReceipt);
   }
 
   resetProfile(): void {
