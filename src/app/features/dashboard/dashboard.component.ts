@@ -77,7 +77,7 @@ export interface DashboardStats {
 export class DashboardComponent implements OnInit {
   private readonly shopStore = inject(ShopStore);
   readonly inventory         = inject(InventoryStore);
-  private readonly orders    = inject(OrdersStore);
+  readonly orders            = inject(OrdersStore);
   private readonly api       = inject(ApiClient);
   private readonly localDb   = inject(LocalDbService);
 

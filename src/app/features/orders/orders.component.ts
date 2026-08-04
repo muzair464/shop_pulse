@@ -401,8 +401,6 @@ export class OrdersComponent implements OnInit {
     );
     return orders;
   });
-    return orders;
-  });
 
   readonly pagedOrders = computed(() => {
     const start = this.currentPage() * this.pageSize;
