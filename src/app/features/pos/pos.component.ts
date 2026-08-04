@@ -485,6 +485,87 @@ export class PosComponent implements OnInit {
     return ({ CASH: 'Cash', CARD_KHATA: 'Card / Khata', DIGITAL_PAY: 'Digital Pay' } as Record<string, string>)[method] ?? method;
   }
 
+  /** Writes receipt HTML directly into a static DOM node and calls window.print().
+   *  This bypasses Angular's OnPush change-detection cycle entirely, so there
+   *  is no race between signal propagation and the print dialog. */
+  private printReceipt(order: {
+    order_number: string; created_at: string;
+    subtotal: number; discount: number; total: number;
+    paymentMethod: string;
+    customerName: string | null; customerPhone: string | null; customerCnic: string | null;
+    items: Array<{ nameSnapshot: string; qty: number; unitPrice: number; lineTotal: number }>;
+  }): void {
+    const shop = this.shopStore.shop();
+    const fmt  = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const date = new Date(order.created_at);
+    const dateStr = date.toLocaleDateString('en-GB');  // dd/mm/yyyy
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    const div = (cls: string, inner: string) => `<div class="${cls}">${inner}</div>`;
+    const row = (label: string, val: string) =>
+      `<div class="rct-row"><span>${label}</span><span>${val}</span></div>`;
+
+    let html = '';
+
+    // Branding
+    html += div('rct-brand', 'ShopPulse');
+    html += '<div class="rct-divider"></div>';
+
+    // Shop
+    html += div('rct-shop-name', shop?.shopName ?? '');
+    if (shop?.phone)   html += div('rct-line', `Tel: ${shop.phone}`);
+    if (shop?.address) html += div('rct-line', shop.address);
+    html += '<div class="rct-divider"></div>';
+
+    // Order info
+    html += row('Order #', order.order_number);
+    html += row('Date', dateStr);
+    html += row('Time', timeStr);
+    html += row('Payment', this.paymentLabel(order.paymentMethod));
+    html += '<div class="rct-divider"></div>';
+
+    // Customer (optional)
+    if (order.customerName || order.customerPhone || order.customerCnic) {
+      html += div('rct-section-label', 'CUSTOMER');
+      if (order.customerName)  html += row('Name',  order.customerName);
+      if (order.customerPhone) html += row('Phone', order.customerPhone);
+      if (order.customerCnic)  html += row('CNIC',  order.customerCnic);
+      html += '<div class="rct-divider"></div>';
+    }
+
+    // Items
+    html += div('rct-section-label', 'ITEMS');
+    for (const line of order.items) {
+      html += div('rct-item-name', line.nameSnapshot);
+      html += `<div class="rct-row rct-item-detail"><span>${line.qty} x ${fmt(line.unitPrice)}</span><span>${fmt(line.lineTotal)}</span></div>`;
+    }
+    html += '<div class="rct-divider"></div>';
+
+    // Totals
+    html += row('Subtotal', fmt(order.subtotal));
+    if (order.discount > 0) {
+      html += row('Discount', `-${fmt(order.discount)}`);
+    }
+    html += '<div class="rct-divider"></div>';
+    html += `<div class="rct-row rct-total"><span>TOTAL (PKR)</span><span>${fmt(order.total)}</span></div>`;
+    html += '<div class="rct-divider"></div>';
+
+    // Footer
+    html += div('rct-footer', 'Thank you for your purchase!');
+    html += div('rct-footer rct-footer-brand', 'Powered by ShopPulse');
+
+    // Inject into static container (outside Angular's view)
+    let container = document.getElementById('sp-receipt-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'sp-receipt-container';
+      container.className = 'print-receipt';
+      document.body.appendChild(container);
+    }
+    container.innerHTML = html;
+    window.print();
+  }
+
   async completeSale(): Promise<void> {
     const lines = this.cart();
     if (lines.length === 0) return;
@@ -527,7 +608,11 @@ export class PosComponent implements OnInit {
         payment_method: string;
       };
 
-      this.lastOrder.set({
+      this.lastOrder.set(null); // kept for potential re-print but not used for rendering
+
+      this.clearCart();
+      this.toast.success(`Order ${order.order_number} completed.`);
+      this.printReceipt({
         order_number:  order.order_number,
         created_at:    order.created_at,
         subtotal:      order.subtotal  ?? sub,
@@ -538,17 +623,12 @@ export class PosComponent implements OnInit {
         customerPhone: order.customer_phone ?? custPhone,
         customerCnic:  order.customer_cnic  ?? custCnic,
         items: items.map(i => ({
-          inventoryId:  i.inventoryId,
           nameSnapshot: i.nameSnapshot,
           qty:          i.qty,
           unitPrice:    i.unitPrice,
           lineTotal:    i.qty * i.unitPrice,
         })),
       });
-
-      this.clearCart();
-      this.toast.success(`Order ${order.order_number} completed.`);
-      setTimeout(() => window.print(), 150);
     } catch (err) {
       if (err instanceof ApiError && err.isConflict) {
         this.toast.error('Stock changed — please refresh and check item quantities.');
