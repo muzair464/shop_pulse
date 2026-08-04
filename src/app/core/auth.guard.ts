@@ -1,33 +1,38 @@
+/**
+ * auth.guard.ts
+ *
+ * authGuard — allows authenticated users through, redirects others to /signin.
+ *
+ * Key behaviour change:
+ *  When the session is already cached in sessionStorage, _loading is false
+ *  from the start and the guard resolves SYNCHRONOUSLY — zero navigation
+ *  delay on refresh.
+ *
+ *  On uncached first-boot (no sessionStorage entry), _loading is true and
+ *  we wait up to 8 seconds for the network verify to resolve.
+ *
+ * publicGuard — redirects signed-in users to /dashboard (login/signup pages).
+ */
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-/**
- * authGuard — waits for the initial session restore to complete,
- * then lets authenticated users through or redirects to /signin.
- */
 export const authGuard: CanActivateFn = async () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
 
-  // Wait for the async session restore from GET /api/v1/auth/session
+  // If still loading (first uncached boot), wait for network verify.
   if (auth.loading()) {
     await waitUntil(() => !auth.loading());
   }
 
-  if (auth.isAuthenticated()) {
-    return true;
-  }
-
-  return router.createUrlTree(['/signin'], {
-    queryParams: { returnUrl: router.routerState.snapshot.url },
-  });
+  return auth.isAuthenticated()
+    ? true
+    : router.createUrlTree(['/signin'], {
+        queryParams: { returnUrl: router.routerState.snapshot.url },
+      });
 };
 
-/**
- * publicGuard — redirects to /dashboard if already authenticated.
- * Used on the /signin route to prevent signed-in users from seeing the login page.
- */
 export const publicGuard: CanActivateFn = async () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
@@ -36,19 +41,17 @@ export const publicGuard: CanActivateFn = async () => {
     await waitUntil(() => !auth.loading());
   }
 
-  if (auth.isAuthenticated()) {
-    return router.createUrlTree(['/dashboard']);
-  }
-
-  return true;
+  return auth.isAuthenticated()
+    ? router.createUrlTree(['/dashboard'])
+    : true;
 };
 
-function waitUntil(condition: () => boolean, maxMs = 8000): Promise<void> {
-  return new Promise((resolve) => {
+function waitUntil(condition: () => boolean, maxMs = 8_000): Promise<void> {
+  return new Promise(resolve => {
     if (condition()) { resolve(); return; }
     const interval = setInterval(() => {
       if (condition()) { clearInterval(interval); resolve(); }
-    }, 50);
+    }, 30); // poll every 30 ms — fast enough, cheap enough
     setTimeout(() => { clearInterval(interval); resolve(); }, maxMs);
   });
 }

@@ -1,13 +1,17 @@
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiClient, ApiError } from './api.client';
+import { SessionCacheService } from './session-cache.service';
+import { TokenRefreshService } from './token-refresh.service';
+import { LocalDbService } from './local-db.service';
 
 export interface SessionUser {
-  id: string;
+  id:    string;
+  email?: string;
 }
 
 export interface SessionShop {
-  id: string;
+  id:   string;
   name: string;
 }
 
@@ -18,46 +22,42 @@ export interface SessionState {
 }
 
 export interface SignInOptions {
-  email: string;
-  password: string;
+  email:          string;
+  password:       string;
   rememberDevice: boolean;
 }
 
 export interface SignUpOptions {
-  email:     string;
-  password:  string;
-  shopName:  string;
-  phone?:    string;
-  address?:  string;
+  email:    string;
+  password: string;
+  shopName: string;
+  phone?:   string;
+  address?: string;
 }
 
-/**
- * AuthService — zero Supabase SDK.
- *
- * All auth operations go through the Node.js Express backend:
- *  - Sign-up  → POST /api/v1/auth/signup        (creates user + shop, sends verification email)
- *  - Sign-in  → POST /api/v1/auth/signin        (backend sets httpOnly cookie)
- *  - Sign-out → POST /api/v1/auth/signout       (backend clears cookie)
- *  - Session  → GET  /api/v1/auth/session       (guard + bootstrap check)
- *  - Password → PATCH /api/v1/auth/password
- *  - Forgot   → POST /api/v1/auth/forgot-password
- *  - Verify   → POST /api/v1/auth/verify-email  (exchanges OTP → session cookie)
- *
- * Angular holds NO token. The httpOnly cookie is sent by the browser
- * automatically on every same-site (or credentialed cross-origin) request.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
-  private readonly router = inject(Router);
-  private readonly api    = inject(ApiClient);
+  private readonly router       = inject(Router);
+  private readonly api          = inject(ApiClient);
+  private readonly sessionCache = inject(SessionCacheService);
+  private readonly tokenRefresh = inject(TokenRefreshService);
+  private readonly localDb      = inject(LocalDbService);
 
-  // ── Signals ───────────────────────────────────────────────────────────────
-  private readonly _session = signal<SessionState>({
-    authenticated: false,
-    user: null,
-    shop: null,
-  });
-  private readonly _loading = signal(true);
+  // ── Signals ──────────────────────────────────────────────────────────────
+
+  /**
+   * Pre-populated from sessionStorage so the guard resolves synchronously
+   * on refresh — zero flicker.  Overwritten once the network check resolves.
+   */
+  private readonly _session = signal<SessionState>(
+    this.sessionCache.read() ?? { authenticated: false, user: null, shop: null },
+  );
+  /**
+   * _loading is false immediately if we have a cached session (guard can
+   * proceed without waiting).  It becomes true only while the background
+   * network verify is in-flight for the first uncached boot.
+   */
+  private readonly _loading = signal(!this.sessionCache.read());
 
   readonly session         = this._session.asReadonly();
   readonly loading         = this._loading.asReadonly();
@@ -67,43 +67,51 @@ export class AuthService implements OnDestroy {
   readonly userId          = computed(() => this._session().user?.id ?? null);
 
   constructor() {
-    void this.restoreSession();
+    // Always verify with the server in the background, even when we have a
+    // cached session — this updates the cache and catches expired cookies.
+    void this._verifySession();
   }
 
-  /** Called on app bootstrap to see if a valid cookie already exists. */
-  async restoreSession(): Promise<void> {
+  /**
+   * Network verification of the session cookie.
+   * On cached boot this runs silently while the app is already visible.
+   * On uncached boot _loading stays true until this resolves (guard waits).
+   */
+  private async _verifySession(): Promise<void> {
     try {
       const data = await this.api.get<SessionState>('/api/v1/auth/session');
       this._session.set(data);
+      if (data.authenticated) {
+        this.sessionCache.write(data);
+        this.tokenRefresh.start();
+      } else {
+        this.sessionCache.clear();
+        this.tokenRefresh.stop();
+      }
     } catch {
-      this._session.set({ authenticated: false, user: null, shop: null });
+      // Network error — keep the cached state rather than signing out
+      // (the user may be offline; the httpOnly cookie is still valid).
+      // If the cookie really is expired, the next API call will 401 and
+      // the interceptor in ApiClient will attempt a refresh then sign out.
     } finally {
       this._loading.set(false);
     }
   }
 
-  /**
-   * Register a new account.
-   * Backend creates the Supabase Auth user + shops row, then Supabase sends
-   * a confirmation email. The user cannot sign in until they click it.
-   * On success, navigate to /verify-email so they know to check their inbox.
-   */
+  // ── Public API ────────────────────────────────────────────────────────────
+
   async signUp(options: SignUpOptions): Promise<{ error: string | null }> {
     try {
-      await this.api.post<{ ok: boolean; message: string }>(
-        '/api/v1/auth/signup',
-        {
-          email:    options.email,
-          password: options.password,
-          shopName: options.shopName,
-          phone:    options.phone    ?? null,
-          address:  options.address  ?? null,
-        },
-      );
+      await this.api.post<{ ok: boolean; message: string }>('/api/v1/auth/signup', {
+        email:    options.email,
+        password: options.password,
+        shopName: options.shopName,
+        phone:    options.phone    ?? null,
+        address:  options.address  ?? null,
+      });
       return { error: null };
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Sign up failed.';
-      return { error: msg };
+      return { error: err instanceof ApiError ? err.message : 'Sign up failed.' };
     }
   }
 
@@ -113,21 +121,24 @@ export class AuthService implements OnDestroy {
         '/api/v1/auth/signin',
         { email: options.email, password: options.password, rememberDevice: options.rememberDevice },
       );
-      this._session.set({ authenticated: true, user: data.user, shop: data.shop });
+      const state: SessionState = { authenticated: true, user: data.user, shop: data.shop };
+      this._session.set(state);
+      this.sessionCache.write(state);
+      this.tokenRefresh.start();
       return { error: null };
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Sign in failed.';
-      return { error: msg };
+      return { error: err instanceof ApiError ? err.message : 'Sign in failed.' };
     }
   }
 
   async signOut(): Promise<void> {
-    try {
-      await this.api.post('/api/v1/auth/signout', {});
-    } catch {
-      // Best-effort — clear local state regardless
-    }
-    this._session.set({ authenticated: false, user: null, shop: null });
+    try { await this.api.post('/api/v1/auth/signout', {}); } catch { /* best-effort */ }
+    const cleared: SessionState = { authenticated: false, user: null, shop: null };
+    this._session.set(cleared);
+    this.sessionCache.clear();
+    this.tokenRefresh.stop();
+    // Wipe all local IndexedDB data so the next user starts clean.
+    void this.localDb.clearAll();
     void this.router.navigate(['/signin'], { replaceUrl: true });
   }
 
@@ -149,10 +160,7 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  async updatePassword(
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<{ error: string | null }> {
+  async updatePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
     try {
       await this.api.patch('/api/v1/auth/password', { currentPassword, newPassword });
       return { error: null };
@@ -161,62 +169,41 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  /**
-   * Exchange a Supabase OTP token_hash for a real httpOnly session cookie.
-   * Used by SetPasswordComponent (invite / recovery flows).
-   */
   async exchangeToken(
     tokenHash: string,
     type: 'invite' | 'recovery' | 'email',
   ): Promise<{ user: SessionUser; shop: SessionShop | null; error: string | null }> {
     try {
-      const data = await this.api.post<{
-        ok:   boolean;
-        user: SessionUser;
-        shop: SessionShop | null;
-      }>('/api/v1/auth/exchange-token', { tokenHash, type });
-
-      this._session.set({ authenticated: true, user: data.user, shop: data.shop });
+      const data = await this.api.post<{ ok: boolean; user: SessionUser; shop: SessionShop | null }>(
+        '/api/v1/auth/exchange-token', { tokenHash, type },
+      );
+      const state: SessionState = { authenticated: true, user: data.user, shop: data.shop };
+      this._session.set(state);
+      this.sessionCache.write(state);
+      this.tokenRefresh.start();
       return { user: data.user, shop: data.shop, error: null };
     } catch (err) {
-      return {
-        user:  { id: '' },
-        shop:  null,
-        error: err instanceof ApiError ? err.message : 'Token exchange failed.',
-      };
+      return { user: { id: '' }, shop: null, error: err instanceof ApiError ? err.message : 'Token exchange failed.' };
     }
   }
 
-  /**
-   * Exchange the email-confirmation OTP for a session cookie.
-   * Called by VerifyEmailComponent when the user lands on /verify-email
-   * with ?token_hash=XXX&type=email from the Supabase confirmation email.
-   */
   async verifyEmail(
     tokenHash: string,
   ): Promise<{ user: SessionUser; shop: SessionShop | null; error: string | null }> {
     try {
-      const data = await this.api.post<{
-        ok:   boolean;
-        user: SessionUser;
-        shop: SessionShop | null;
-      }>('/api/v1/auth/verify-email', { tokenHash });
-
-      this._session.set({ authenticated: true, user: data.user, shop: data.shop });
+      const data = await this.api.post<{ ok: boolean; user: SessionUser; shop: SessionShop | null }>(
+        '/api/v1/auth/verify-email', { tokenHash },
+      );
+      const state: SessionState = { authenticated: true, user: data.user, shop: data.shop };
+      this._session.set(state);
+      this.sessionCache.write(state);
+      this.tokenRefresh.start();
       return { user: data.user, shop: data.shop, error: null };
     } catch (err) {
-      return {
-        user:  { id: '' },
-        shop:  null,
-        error: err instanceof ApiError ? err.message : 'Email verification failed.',
-      };
+      return { user: { id: '' }, shop: null, error: err instanceof ApiError ? err.message : 'Email verification failed.' };
     }
   }
 
-  /**
-   * Set a new password for the currently-authenticated session.
-   * No currentPassword required — used after exchangeToken() for invite / recovery.
-   */
   async setPassword(newPassword: string): Promise<{ error: string | null }> {
     try {
       await this.api.patch('/api/v1/auth/set-password', { newPassword });
@@ -226,15 +213,19 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  /** Silently refresh the access token (called by the 401 interceptor). */
+  /** Called by the 401 interceptor. Returns true if refresh succeeded. */
   async refreshToken(): Promise<boolean> {
     try {
       await this.api.post('/api/v1/auth/refresh', {});
+      // Reschedule the proactive timer after a reactive refresh.
+      this.tokenRefresh.start();
       return true;
     } catch {
       return false;
     }
   }
 
-  ngOnDestroy(): void { /* nothing to clean up */ }
+  ngOnDestroy(): void {
+    this.tokenRefresh.stop();
+  }
 }
