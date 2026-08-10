@@ -41,8 +41,8 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
             class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
             aria-hidden="true" />
           <input #searchInput type="search"
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="onSearchChange()"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchChange($event)"
             (keydown)="onSearchKeydown($event)"
             placeholder="  Search products… (Alt+K)"
             class="form-input pl-9 pr-4 text-sm"
@@ -338,7 +338,7 @@ export class PosComponent implements OnInit {
   readonly ChevronUpIcon   = ChevronUp;
 
   // ── State ──────────────────────────────────────────────────────
-  searchQuery  = '';
+  readonly searchQuery  = signal('');
   customer: CustomerInfo = { name: '', phone: '', cnic: '' };
   get isMobile(): boolean { return window.innerWidth < 1024; }
 
@@ -364,7 +364,7 @@ export class PosComponent implements OnInit {
   });
 
   readonly filteredProducts = computed(() => {
-    const q   = this.searchQuery.toLowerCase().trim();
+    const q   = this.searchQuery().toLowerCase().trim();
     const cat = this.activeCategory();
     return this.inventoryStore.items().filter(i => {
       const matchCat = cat === 'All' || i.category === cat;
@@ -417,7 +417,7 @@ export class PosComponent implements OnInit {
       const item = idx >= 0 ? products[idx] : products[0];
       if (item) this.addToCart(item);
     } else if (e.key === 'Escape') {
-      this.searchQuery = '';
+      this.searchQuery.set('');
       this.focusedIdx.set(-1);
       this.cdr.markForCheck();
     }
@@ -429,7 +429,8 @@ export class PosComponent implements OnInit {
     }, 0);
   }
 
-  onSearchChange(): void {
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
     this.focusedIdx.set(-1);
   }
 
