@@ -35,11 +35,10 @@ type RangeOption = 7 | 30 | 90;
         <div class="flex gap-1" role="group" aria-label="Chart date range">
           @for (opt of rangeOptions; track opt.value) {
             <button type="button" (click)="rangeChange.emit(opt.value)"
-              [class.bg-primary-600]="activeRange() === opt.value"
-              [class.text-white]="activeRange() === opt.value"
-              [class.border-primary-600]="activeRange() === opt.value"
-              class="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-200
-                     text-gray-600 hover:bg-gray-50 transition-colors"
+              class="px-3 py-1 text-xs font-semibold rounded-lg border transition-colors"
+              [class]="activeRange() === opt.value
+                ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'"
               [attr.aria-pressed]="activeRange() === opt.value">
               {{ opt.label }}
             </button>

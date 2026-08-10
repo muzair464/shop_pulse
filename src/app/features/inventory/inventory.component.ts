@@ -85,10 +85,10 @@ type TabFilter = 'all' | 'NEW' | 'USED';
             <button type="button" role="tab"
               (click)="activeTab.set(tab.value)"
               [attr.aria-selected]="activeTab() === tab.value"
-              [class.bg-primary-600]="activeTab() === tab.value"
-              [class.text-white]="activeTab() === tab.value"
-              [class.border-primary-600]="activeTab() === tab.value"
-              class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">
+              class="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap"
+              [class]="activeTab() === tab.value
+                ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
               {{ tab.label }}
               <span class="ml-1 text-xs opacity-70">({{ tab.count() }})</span>
             </button>
@@ -291,10 +291,10 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                   @for (opt of classificationOptions; track opt.value) {
                     <button type="button"
                       (click)="itemForm.controls.classification.setValue(opt.value)"
-                      [class.bg-primary-600]="itemForm.controls.classification.value === opt.value"
-                      [class.text-white]="itemForm.controls.classification.value === opt.value"
-                      [class.border-primary-600]="itemForm.controls.classification.value === opt.value"
-                      class="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+                      class="flex-1 py-2 text-sm font-medium rounded-lg border transition-colors"
+                      [class]="itemForm.controls.classification.value === opt.value
+                        ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50 hover:text-gray-800'">
                       {{ opt.label }}
                     </button>
                   }

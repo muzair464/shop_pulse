@@ -54,10 +54,11 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
           @for (cat of allCategories(); track cat) {
             <button type="button" role="tab"
               (click)="setCategory(cat)"
-              [class.bg-primary-600]="activeCategory() === cat"
-              [class.text-white]="activeCategory() === cat"
-              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200
-                     text-gray-600 hover:bg-gray-50 whitespace-nowrap transition-colors shrink-0">
+              class="px-2.5 py-1 text-xs font-medium rounded-lg border whitespace-nowrap
+                     transition-colors shrink-0"
+              [class]="activeCategory() === cat
+                ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
               {{ cat }}
             </button>
           }
@@ -250,11 +251,11 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
           <div class="flex gap-1">
             @for (pm of paymentMethods; track pm.value) {
               <button type="button" (click)="paymentMethod.set(pm.value)"
-                [class.bg-primary-600]="paymentMethod() === pm.value"
-                [class.text-white]="paymentMethod() === pm.value"
-                [class.border-primary-600]="paymentMethod() === pm.value"
-                class="flex-1 py-1.5 text-[10px] font-semibold rounded-lg border border-gray-200
-                       text-gray-600 hover:bg-gray-50 transition-colors"
+                class="flex-1 py-1.5 text-[10px] font-semibold rounded-lg border
+                       transition-colors"
+                [class]="paymentMethod() === pm.value
+                  ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'"
                 [attr.aria-pressed]="paymentMethod() === pm.value">
                 {{ pm.label }}
               </button>

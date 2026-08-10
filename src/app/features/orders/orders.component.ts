@@ -103,9 +103,10 @@ interface OrderDetail extends OrderRow {
             <div class="flex gap-1">
               @for (opt of channelOptions; track opt.value) {
                 <button type="button" (click)="channelFilter.set(opt.value)"
-                  [class.bg-primary-600]="channelFilter() === opt.value"
-                  [class.text-white]="channelFilter() === opt.value"
-                  class="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  class="px-3 py-1 text-xs font-medium rounded-lg border transition-colors"
+                  [class]="channelFilter() === opt.value
+                    ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
                   {{ opt.label }}
                 </button>
               }
@@ -116,9 +117,10 @@ interface OrderDetail extends OrderRow {
             <div class="flex flex-wrap gap-1">
               @for (opt of methodOptions; track opt.value) {
                 <button type="button" (click)="methodFilter.set(opt.value)"
-                  [class.bg-primary-600]="methodFilter() === opt.value"
-                  [class.text-white]="methodFilter() === opt.value"
-                  class="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  class="px-3 py-1 text-xs font-medium rounded-lg border transition-colors"
+                  [class]="methodFilter() === opt.value
+                    ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
                   {{ opt.label }}
                 </button>
               }
