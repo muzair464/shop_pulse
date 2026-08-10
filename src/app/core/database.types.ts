@@ -25,6 +25,7 @@ export interface InventoryItemRow {
   description:    string | null;
   category:       string;
   imei:           string | null;
+  imei2:          string | null;
   sku:            string | null;
   stock:          number;
   cost_price:     number;
@@ -40,6 +41,7 @@ export interface CreateInventoryItemBody {
   description?:   string | null;
   category:       string;
   imei?:          string | null;
+  imei2?:         string | null;
   sku?:           string | null;
   stock:          number;
   cost_price:     number;

@@ -371,7 +371,9 @@ export class PosComponent implements OnInit {
       const matchQ   = !q
         || i.name.toLowerCase().includes(q)
         || i.category.toLowerCase().includes(q)
+        || (i.description ?? '').toLowerCase().includes(q)
         || (i.imei ?? '').includes(q)
+        || (i.imei2 ?? '').includes(q)
         || (i.sku ?? '').toLowerCase().includes(q);
       return matchCat && matchQ;
     });

@@ -21,6 +21,12 @@ export const routes: Routes = [
           import('./features/auth/sign-in.component').then(m => m.SignInComponent),
       },
       {
+        path: 'forgot-password',
+        canActivate: [publicGuard],
+        loadComponent: () =>
+          import('./features/auth/forgot-password.component').then(m => m.ForgotPasswordComponent),
+      },
+      {
         // New account registration — 2-step form (account + shop details).
         // publicGuard redirects signed-in users to /dashboard.
         path: 'signup',

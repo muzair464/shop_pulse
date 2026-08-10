@@ -5,24 +5,6 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule, Eye, EyeOff, Zap, Loader2 } from 'lucide-angular';
 import { AuthService } from '../../core/auth.service';
-import { ApiClient, ApiError } from '../../core/api.client';
-
-/**
- * SignInComponent — zero Supabase SDK.
- *
- * Normal sign-in: POST /api/v1/auth/signin (cookie set by backend).
- * Forgot password: POST /api/v1/auth/forgot-password (Supabase sends email).
- * Password recovery: The reset link redirects here with a token in the URL
- *   fragment; we POST the new password to /api/v1/auth/password after the
- *   user re-authenticates in the backend's change-password flow.
- *
- * Note: because the backend now owns the Supabase Auth interaction,
- * recovery-mode token exchange is handled server-side. The frontend
- * simply shows a "reset link sent" confirmation — the redirect URL
- * in the email points to /signin, and after clicking they sign in fresh
- * with their new password. A dedicated /reset-password page is the
- * production pattern; for now we keep the same UX as before.
- */
 @Component({
   selector: 'app-sign-in',
   standalone: true,
@@ -74,10 +56,10 @@ import { ApiClient, ApiError } from '../../core/api.client';
               <label for="password" class="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <button type="button" (click)="forgotPassword()"
+              <a routerLink="/forgot-password"
                 class="text-xs text-primary-600 hover:text-primary-700 hover:underline focus:outline-none focus:underline">
                 Forgot password?
-              </button>
+              </a>
             </div>
             <div class="relative">
               <input
@@ -123,13 +105,6 @@ import { ApiClient, ApiError } from '../../core/api.client';
         </form>
       </div>
 
-      @if (resetEmailSent()) {
-        <div class="mt-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3
-                    text-sm text-green-700 text-center" role="status" aria-live="polite">
-          Password reset email sent. Check your inbox.
-        </div>
-      }
-
       <p class="mt-6 text-center text-sm text-gray-500">
         Don't have an account?
         <a routerLink="/signup"
@@ -148,10 +123,9 @@ export class SignInComponent {
   private readonly router = inject(Router);
   private readonly route  = inject(ActivatedRoute);
 
-  readonly loading        = signal(false);
-  readonly errorMessage   = signal<string | null>(null);
-  readonly showPassword   = signal(false);
-  readonly resetEmailSent = signal(false);
+  readonly loading      = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+  readonly showPassword = signal(false);
 
   readonly ZapIcon     = Zap;
   readonly EyeIcon     = Eye;
@@ -192,19 +166,5 @@ export class SignInComponent {
 
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
     void this.router.navigateByUrl(returnUrl, { replaceUrl: true });
-  }
-
-  async forgotPassword(): Promise<void> {
-    const email = this.form.controls.email.value;
-    if (!email) {
-      this.errorMessage.set('Enter your email address above, then click "Forgot password?".');
-      return;
-    }
-    this.loading.set(true);
-    const { error } = await this.auth.resetPassword(email);
-    this.loading.set(false);
-
-    if (error) { this.errorMessage.set(error); }
-    else { this.resetEmailSent.set(true); }
   }
 }

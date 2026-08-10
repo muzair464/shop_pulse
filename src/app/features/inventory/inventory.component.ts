@@ -119,6 +119,9 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                   @if (item.imei) {
                     <p class="text-xs text-gray-400 font-mono truncate">{{ item.imei }}</p>
                   }
+                  @if (item.imei2) {
+                    <p class="text-xs text-gray-400 font-mono truncate">IMEI 2: {{ item.imei2 }}</p>
+                  }
                   <p class="text-xs text-gray-400 truncate">{{ item.category }}</p>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
@@ -190,6 +193,9 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                       }
                       @if (item.imei) {
                         <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ item.imei }}</div>
+                      }
+                      @if (item.imei2) {
+                        <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">IMEI 2: {{ item.imei2 }}</div>
                       }
                       @if (item.sku) {
                         <div class="text-xs text-gray-400 mt-0.5 truncate">SKU: {{ item.sku }}</div>
@@ -327,9 +333,17 @@ type TabFilter = 'all' | 'NEW' | 'USED';
             </div>
             @if (itemForm.controls.classification.value === 'USED') {
               <div>
-                <label for="item-imei" class="block text-sm font-medium text-gray-700 mb-1.5">IMEI</label>
+                <label for="item-imei" class="block text-sm font-medium text-gray-700 mb-1.5">IMEI 1</label>
                 <input id="item-imei" type="text" formControlName="imei"
                   class="form-input font-mono" placeholder="15-digit IMEI" maxlength="15" />
+              </div>
+              <div>
+                <label for="item-imei2" class="block text-sm font-medium text-gray-700 mb-1.5">
+                  IMEI 2
+                  <span class="text-xs text-gray-400 font-normal ml-1">(optional, for dual-SIM)</span>
+                </label>
+                <input id="item-imei2" type="text" formControlName="imei2"
+                  class="form-input font-mono" placeholder="15-digit IMEI (optional)" maxlength="15" />
               </div>
             }
             <div>
@@ -433,6 +447,7 @@ export class InventoryComponent implements OnInit {
         || i.category.toLowerCase().includes(q)
         || (i.description ?? '').toLowerCase().includes(q)
         || (i.imei ?? '').includes(q)
+        || (i.imei2 ?? '').includes(q)
         || (i.sku ?? '').toLowerCase().includes(q),
       );
     }
@@ -451,6 +466,7 @@ export class InventoryComponent implements OnInit {
     category:       ['', Validators.required],
     stock:          [0, [Validators.required, Validators.min(0)]],
     imei:           [''],
+    imei2:          [''],
     sku:            [''],
     cost_price:     [0, [Validators.required, Validators.min(0)]],
     selling_price:  [0, [Validators.required, Validators.min(0)]],
@@ -477,7 +493,7 @@ export class InventoryComponent implements OnInit {
       classification: item.classification,
       name: item.name, description: item.description ?? '',
       category: item.category, stock: item.stock,
-      imei: item.imei ?? '', sku: item.sku ?? '',
+      imei: item.imei ?? '', imei2: item.imei2 ?? '', sku: item.sku ?? '',
       cost_price: item.cost_price, selling_price: item.selling_price,
     });
     this.formError.set(null);
@@ -515,6 +531,7 @@ export class InventoryComponent implements OnInit {
         const updated = await this.api.patch<InventoryItemRow>(`/api/v1/inventory/${editing.id}`, {
           name: val.name, description: val.description || null,
           category: val.category, stock: Number(val.stock),
+          imei: val.imei || null, imei2: val.imei2 || null,
           sku: val.sku || null, cost_price: Number(val.cost_price),
           selling_price: Number(val.selling_price),
           version: editing.version,
@@ -526,6 +543,7 @@ export class InventoryComponent implements OnInit {
           classification: val.classification, name: val.name,
           description: val.description || null, category: val.category,
           stock: Number(val.stock), imei: val.imei || null,
+          imei2: val.imei2 || null,
           sku: val.sku || null, cost_price: Number(val.cost_price),
           selling_price: Number(val.selling_price),
         });

@@ -297,9 +297,14 @@ export class SetPasswordComponent implements OnInit {
 
     this.state.set('done');
 
-    // Brief pause so the success state is visible, then go to dashboard.
+    // After recovery, redirect to sign-in so the user logs in with their new password.
+    // After invite acceptance, go straight to dashboard (session is already established).
     setTimeout(() => {
-      void this.router.navigate(['/dashboard'], { replaceUrl: true });
+      if (this.flowType === 'recovery') {
+        void this.router.navigate(['/signin'], { replaceUrl: true });
+      } else {
+        void this.router.navigate(['/dashboard'], { replaceUrl: true });
+      }
     }, 1_500);
   }
 
