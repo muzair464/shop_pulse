@@ -358,3 +358,117 @@ function paymentLabel(method: string): string {
 </div>
   `,
 })
+export class DashboardComponent implements OnInit {
+  readonly shopStore = inject(ShopStore);
+  private readonly api = inject(ApiClient);
+
+  readonly stats   = signal<DashboardStats | null>(null);
+  readonly loading = signal(false);
+  readonly error   = signal<string | null>(null);
+  readonly activeRange = signal<RangeOption>(30);
+
+  // ── Lucide icon refs ──────────────────────────────────────────────────────
+  readonly ShoppingBagIcon    = ShoppingBag;
+  readonly DollarSignIcon     = DollarSign;
+  readonly TrendingUpIcon     = TrendingUp;
+  readonly TargetIcon         = Target;
+  readonly AlertTriangleIcon  = AlertTriangle;
+  readonly RefreshCwIcon      = RefreshCw;
+  readonly AwardIcon          = Award;
+  readonly CreditCardIcon     = CreditCard;
+  readonly ClockIcon          = Clock;
+  readonly ActivityIcon       = Activity;
+  readonly PackageCheckIcon   = PackageCheck;
+  readonly ArrowRightIcon     = ArrowRight;
+  readonly WalletIcon         = Wallet;
+  readonly SmartphoneIcon     = Smartphone;
+  readonly UsersIcon          = Users;
+
+  // ── Trend signals (% change today vs yesterday) ───────────────────────────
+  readonly trendOrders  = computed(() => {
+    const s = this.stats();
+    return s ? pctChange(s.newOrders, s.yesterday.orders) : null;
+  });
+  readonly trendSales   = computed(() => {
+    const s = this.stats();
+    return s ? pctChange(s.salesToday, s.yesterday.sales) : null;
+  });
+  readonly trendProfit  = computed(() => {
+    const s = this.stats();
+    return s ? pctChange(s.profitToday, s.yesterday.profit) : null;
+  });
+
+  ngOnInit(): void {
+    void this.load();
+  }
+
+  async refresh(): Promise<void> {
+    await this.load();
+  }
+
+  setRange(r: RangeOption): void {
+    this.activeRange.set(r);
+    void this.load();
+  }
+
+  private async load(): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const tzOffset = new Date().getTimezoneOffset();
+      const data = await this.api.get<DashboardStats>(
+        `/api/v1/dashboard/stats?days=${this.activeRange()}&tzOffset=${tzOffset}`,
+      );
+      this.stats.set(data);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to load dashboard.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // ── Template helpers ──────────────────────────────────────────────────────
+  readonly fmt = fmt;
+  readonly paymentLabel = paymentLabel;
+
+  peakHourLabel(data: HourlyData[]): string { return peakHour(data); }
+
+  hourLabel(h: number): string {
+    if (h === 0)    return '12 AM';
+    if (h === 12)   return '12 PM';
+    return h < 12 ? `${h} AM` : `${h - 12} PM`;
+  }
+
+  heatmapHeight(h: HourlyData, all: HourlyData[]): number {
+    const max = Math.max(...all.map(x => x.order_count), 1);
+    return Math.max(4, (h.order_count / max) * 100);
+  }
+
+  heatmapColor(h: HourlyData, all: HourlyData[]): string {
+    const max = Math.max(...all.map(x => x.order_count), 1);
+    const ratio = h.order_count / max;
+    if (ratio === 0)       return 'bg-gray-100';
+    if (ratio < 0.25)      return 'bg-blue-100';
+    if (ratio < 0.5)       return 'bg-blue-300';
+    if (ratio < 0.75)      return 'bg-blue-500';
+    return 'bg-blue-700';
+  }
+
+  pmPct(pm: PaymentBreakdown, all: PaymentBreakdown[]): number {
+    const total = all.reduce((s, x) => s + x.total, 0);
+    return total === 0 ? 0 : (pm.total / total) * 100;
+  }
+
+  paymentIcon(method: string) {
+    if (method === 'DIGITAL_PAY') return this.SmartphoneIcon;
+    if (method === 'CARD_KHATA')  return this.WalletIcon;
+    return this.CreditCardIcon;
+  }
+
+  paymentBarColor(method: string): string {
+    if (method === 'CASH')        return 'bg-green-500';
+    if (method === 'CARD_KHATA')  return 'bg-blue-500';
+    if (method === 'DIGITAL_PAY') return 'bg-violet-500';
+    return 'bg-gray-400';
+  }
+}
