@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideAngularModule, Search, ShoppingCart, Plus, Minus,
   Trash2, Printer, Loader2, QrCode, User, ChevronDown, ChevronUp,
-  BookOpen, Check,
+  BookOpen, Check, X,
 } from 'lucide-angular';
 import { InventoryStore } from '../../core/inventory.store';
 import { ShopStore } from '../../core/shop.store';
@@ -20,6 +20,7 @@ import type { InventoryItemRow } from '../../core/database.types';
 type PaymentMethodType = 'CASH' | 'CARD_KHATA' | 'DIGITAL_PAY';
 interface CartLine  { item: InventoryItemRow; qty: number; customPrice: number | null; }
 interface CustomerInfo { name: string; phone: string; cnic: string; }
+interface KhataCustomer { id: string; name: string; phone: string | null; balance: number; }
 
 @Component({
   selector: 'app-pos',
@@ -195,53 +196,107 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
         }
       </div>
 
-      <!-- Customer details -->
+      <!-- Customer + Khata section -->
       @if (cart().length > 0) {
         <div class="border-t border-gray-100 px-3 py-2 shrink-0">
           <button type="button" (click)="customerOpen.set(!customerOpen())"
             class="flex items-center gap-1.5 text-xs font-medium text-gray-500
                    hover:text-gray-700 w-full text-left">
             <lucide-icon [img]="UserIcon" size="12" aria-hidden="true" />
-            Customer Details
-            @if (saveAsCustomer()) {
-              <span class="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary-100
-                           text-primary-700 text-[9px] font-bold">Saved</span>
+            Customer / Khata
+            @if (linkedCustomer()) {
+              <span class="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-100
+                           text-amber-700 text-[9px] font-bold">
+                {{ linkedCustomer()!.name }}
+              </span>
             }
             <lucide-icon [img]="customerOpen() ? ChevronUpIcon : ChevronDownIcon"
               size="12" class="ml-auto" aria-hidden="true" />
           </button>
+
           @if (customerOpen()) {
-            <div class="mt-2 space-y-1.5">
-              <input type="text" [(ngModel)]="customer.name" placeholder="Name (optional)"
-                class="form-input text-xs py-1.5" aria-label="Customer name" />
-              <input type="tel" [(ngModel)]="customer.phone" placeholder="Phone (optional)"
-                class="form-input text-xs py-1.5" aria-label="Customer phone" />
-              <input type="text" [(ngModel)]="customer.cnic" placeholder="CNIC (optional)"
-                class="form-input text-xs py-1.5" aria-label="Customer CNIC" />
+            <div class="mt-2 space-y-2">
 
-              <!-- Save-as-customer toggle -->
-              <label class="flex items-center gap-2 pt-1 cursor-pointer select-none">
-                <button type="button" role="switch"
-                  [attr.aria-checked]="saveAsCustomer()"
-                  (click)="saveAsCustomer.set(!saveAsCustomer())"
-                  class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2
-                         border-transparent transition-colors focus:outline-none
-                         focus:ring-2 focus:ring-primary-500/40"
-                  [class.bg-primary-600]="saveAsCustomer()"
-                  [class.bg-gray-200]="!saveAsCustomer()">
-                  <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full
-                               bg-white shadow ring-0 transition-transform"
-                    [class.translate-x-4]="saveAsCustomer()"
-                    [class.translate-x-0]="!saveAsCustomer()">
-                  </span>
-                </button>
-                <span class="text-xs text-gray-600 font-medium">Save as customer</span>
-              </label>
+              <!-- Customer search -->
+              <div class="relative">
+                <lucide-icon [img]="SearchIcon" size="12"
+                  class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  aria-hidden="true"/>
+                <input type="search"
+                  [value]="customerSearch()"
+                  (input)="onCustomerSearch($event)"
+                  placeholder="Search customer by name or phone..."
+                  class="form-input pl-7 text-xs py-1.5"
+                  aria-label="Search customer"/>
+              </div>
 
-              <!-- Khata credit toggle — only shown when save-as-customer is on
-                   and payment method is CARD_KHATA -->
-              @if (saveAsCustomer() && paymentMethod() === 'CARD_KHATA') {
-                <label class="flex items-center gap-2 cursor-pointer select-none">
+              <!-- Dropdown results -->
+              @if (customerResults().length > 0 && !linkedCustomer()) {
+                <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  @for (c of customerResults(); track c.id) {
+                    <button type="button" (click)="linkCustomer(c)"
+                      class="w-full flex items-center justify-between px-3 py-2 text-left
+                             hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                      <div class="min-w-0">
+                        <p class="text-xs font-semibold text-gray-800 truncate">{{ c.name }}</p>
+                        @if (c.phone) {
+                          <p class="text-[10px] text-gray-400">{{ c.phone }}</p>
+                        }
+                      </div>
+                      <span class="text-[10px] font-semibold tabular-nums ml-2 shrink-0"
+                        [class.text-red-600]="c.balance > 0"
+                        [class.text-gray-500]="c.balance <= 0">
+                        PKR {{ c.balance | number:'1.0-0' }}
+                      </span>
+                    </button>
+                  }
+                </div>
+              }
+
+              <!-- Linked customer chip -->
+              @if (linkedCustomer()) {
+                <div class="flex items-center gap-2 px-2.5 py-2 rounded-lg
+                            bg-amber-50 border border-amber-200">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-amber-800 truncate">
+                      {{ linkedCustomer()!.name }}
+                    </p>
+                    @if (linkedCustomer()!.phone) {
+                      <p class="text-[10px] text-amber-600">{{ linkedCustomer()!.phone }}</p>
+                    }
+                    <p class="text-[10px] text-amber-700 mt-0.5">
+                      Balance: PKR {{ linkedCustomer()!.balance | number:'1.0-0' }}
+                    </p>
+                  </div>
+                  <button type="button" (click)="unlinkCustomer()"
+                    class="p-1 text-amber-400 hover:text-amber-700 transition-colors"
+                    aria-label="Remove linked customer">
+                    <lucide-icon [img]="XIcon" size="13" aria-hidden="true"/>
+                  </button>
+                </div>
+              }
+
+              <!-- New customer fields (shown when no match found) -->
+              @if (!linkedCustomer() && customerSearch().trim().length > 1 && !customerResults().length) {
+                <div class="space-y-1.5 pt-0.5">
+                  <p class="text-[10px] text-gray-400 font-medium">
+                    No match — fill to create new customer:
+                  </p>
+                  <input type="text" [(ngModel)]="customer.name"
+                    placeholder="Full name (required)"
+                    class="form-input text-xs py-1.5" aria-label="Customer name"/>
+                  <input type="tel" [(ngModel)]="customer.phone"
+                    placeholder="Phone (optional)"
+                    class="form-input text-xs py-1.5" aria-label="Customer phone"/>
+                  <input type="text" [(ngModel)]="customer.cnic"
+                    placeholder="CNIC (optional)"
+                    class="form-input text-xs py-1.5" aria-label="Customer CNIC"/>
+                </div>
+              }
+
+              <!-- Add to Khata toggle — available for any payment method -->
+              @if (linkedCustomer() || customer.name.trim()) {
+                <label class="flex items-center gap-2 pt-0.5 cursor-pointer select-none">
                   <button type="button" role="switch"
                     [attr.aria-checked]="addToKhata()"
                     (click)="addToKhata.set(!addToKhata())"
@@ -250,17 +305,17 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
                            focus:ring-2 focus:ring-amber-500/40"
                     [class.bg-amber-500]="addToKhata()"
                     [class.bg-gray-200]="!addToKhata()">
-                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full
-                                 bg-white shadow ring-0 transition-transform"
+                    <span class="pointer-events-none inline-block h-4 w-4 transform
+                                 rounded-full bg-white shadow ring-0 transition-transform"
                       [class.translate-x-4]="addToKhata()"
                       [class.translate-x-0]="!addToKhata()">
                     </span>
                   </button>
                   <div class="flex items-center gap-1">
                     <lucide-icon [img]="BookOpenIcon" size="11"
-                      class="text-amber-600" aria-hidden="true" />
+                      class="text-amber-600" aria-hidden="true"/>
                     <span class="text-xs text-amber-700 font-medium">
-                      Add {{ total() | number:'1.0-0' }} to Khata
+                      Add PKR {{ total() | number:'1.0-0' }} to Khata
                     </span>
                   </div>
                 </label>
@@ -391,8 +446,6 @@ export class PosComponent implements OnInit {
   readonly ChevronUpIcon   = ChevronUp;
   readonly BookOpenIcon    = BookOpen;
   readonly CheckIcon       = Check;
-
-  // ── State ──────────────────────────────────────────────────────
   readonly searchQuery  = signal('');
   customer: CustomerInfo = { name: '', phone: '', cnic: '' };
   get isMobile(): boolean { return window.innerWidth < 1024; }
