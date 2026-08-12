@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   LayoutDashboard, ShoppingCart, Package, ClipboardList, Settings, LogOut, Zap, Menu, X,
+  BookOpen,
 } from 'lucide-angular';
 import { AuthService } from '../core/auth.service';
 import { ShopStore } from '../core/shop.store';
@@ -98,6 +99,7 @@ export class TopNavComponent {
     { path: '/pos',       label: 'POS',       icon: ShoppingCart },
     { path: '/inventory', label: 'Inventory', icon: Package },
     { path: '/orders',    label: 'Orders',    icon: ClipboardList },
+    { path: '/khata',     label: 'Khata',     icon: BookOpen },
     { path: '/settings',  label: 'Settings',  icon: Settings },
   ];
 

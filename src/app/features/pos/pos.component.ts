@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideAngularModule, Search, ShoppingCart, Plus, Minus,
   Trash2, Printer, Loader2, QrCode, User, ChevronDown, ChevronUp,
+  BookOpen, Check,
 } from 'lucide-angular';
 import { InventoryStore } from '../../core/inventory.store';
 import { ShopStore } from '../../core/shop.store';
@@ -202,6 +203,10 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
                    hover:text-gray-700 w-full text-left">
             <lucide-icon [img]="UserIcon" size="12" aria-hidden="true" />
             Customer Details
+            @if (saveAsCustomer()) {
+              <span class="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary-100
+                           text-primary-700 text-[9px] font-bold">Saved</span>
+            }
             <lucide-icon [img]="customerOpen() ? ChevronUpIcon : ChevronDownIcon"
               size="12" class="ml-auto" aria-hidden="true" />
           </button>
@@ -213,6 +218,53 @@ interface CustomerInfo { name: string; phone: string; cnic: string; }
                 class="form-input text-xs py-1.5" aria-label="Customer phone" />
               <input type="text" [(ngModel)]="customer.cnic" placeholder="CNIC (optional)"
                 class="form-input text-xs py-1.5" aria-label="Customer CNIC" />
+
+              <!-- Save-as-customer toggle -->
+              <label class="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                <button type="button" role="switch"
+                  [attr.aria-checked]="saveAsCustomer()"
+                  (click)="saveAsCustomer.set(!saveAsCustomer())"
+                  class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2
+                         border-transparent transition-colors focus:outline-none
+                         focus:ring-2 focus:ring-primary-500/40"
+                  [class.bg-primary-600]="saveAsCustomer()"
+                  [class.bg-gray-200]="!saveAsCustomer()">
+                  <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full
+                               bg-white shadow ring-0 transition-transform"
+                    [class.translate-x-4]="saveAsCustomer()"
+                    [class.translate-x-0]="!saveAsCustomer()">
+                  </span>
+                </button>
+                <span class="text-xs text-gray-600 font-medium">Save as customer</span>
+              </label>
+
+              <!-- Khata credit toggle — only shown when save-as-customer is on
+                   and payment method is CARD_KHATA -->
+              @if (saveAsCustomer() && paymentMethod() === 'CARD_KHATA') {
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <button type="button" role="switch"
+                    [attr.aria-checked]="addToKhata()"
+                    (click)="addToKhata.set(!addToKhata())"
+                    class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2
+                           border-transparent transition-colors focus:outline-none
+                           focus:ring-2 focus:ring-amber-500/40"
+                    [class.bg-amber-500]="addToKhata()"
+                    [class.bg-gray-200]="!addToKhata()">
+                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full
+                                 bg-white shadow ring-0 transition-transform"
+                      [class.translate-x-4]="addToKhata()"
+                      [class.translate-x-0]="!addToKhata()">
+                    </span>
+                  </button>
+                  <div class="flex items-center gap-1">
+                    <lucide-icon [img]="BookOpenIcon" size="11"
+                      class="text-amber-600" aria-hidden="true" />
+                    <span class="text-xs text-amber-700 font-medium">
+                      Add {{ total() | number:'1.0-0' }} to Khata
+                    </span>
+                  </div>
+                </label>
+              }
             </div>
           }
         </div>
@@ -337,6 +389,8 @@ export class PosComponent implements OnInit {
   readonly UserIcon      = User;
   readonly ChevronDownIcon = ChevronDown;
   readonly ChevronUpIcon   = ChevronUp;
+  readonly BookOpenIcon    = BookOpen;
+  readonly CheckIcon       = Check;
 
   // ── State ──────────────────────────────────────────────────────
   readonly searchQuery  = signal('');
@@ -349,8 +403,10 @@ export class PosComponent implements OnInit {
   readonly paymentMethod   = signal<PaymentMethodType>('CASH');
   readonly checkoutLoading = signal(false);
   readonly customerOpen    = signal(false);
-  readonly cartExpanded    = signal(false);  // mobile: show cart vs catalog
-  readonly focusedIdx      = signal(-1);     // keyboard navigation in product grid
+  readonly cartExpanded    = signal(false);
+  readonly focusedIdx      = signal(-1);
+  readonly saveAsCustomer  = signal(false);   // save/link customer record on checkout
+  readonly addToKhata      = signal(false);   // create CREDIT khata entry on checkout
 
   readonly paymentMethods: { label: string; value: PaymentMethodType }[] = [
     { label: 'Cash',       value: 'CASH' },
@@ -495,6 +551,8 @@ export class PosComponent implements OnInit {
     this.discount.set(0);
     this.customer = { name: '', phone: '', cnic: '' };
     this.customerOpen.set(false);
+    this.saveAsCustomer.set(false);
+    this.addToKhata.set(false);
   }
 
   paymentLabel(method: string): string {
@@ -533,11 +591,13 @@ export class PosComponent implements OnInit {
       unitPrice: this.linePrice(l), nameSnapshot: l.item.name,
       description: l.item.description ?? null,
     }));
-    const sub   = this.subtotal();
-    const disc  = this.discount();
+    const sub    = this.subtotal();
+    const disc   = this.discount();
     const cName  = this.customer.name.trim()  || null;
     const cPhone = this.customer.phone.trim() || null;
     const cCnic  = this.customer.cnic.trim()  || null;
+    const shouldSave  = this.saveAsCustomer() && !!cName;
+    const shouldKhata = shouldSave && this.addToKhata() && this.paymentMethod() === 'CARD_KHATA';
 
     try {
       const result = await this.api.post<{ order: Record<string, unknown> }>(
@@ -554,15 +614,49 @@ export class PosComponent implements OnInit {
         customer_name: string | null; customer_phone: string | null; customer_cnic: string | null;
       };
 
-      // ── Immediately update InventoryStore + IDB with decremented stock ──
-      // Don't wait for Supabase Realtime — update locally right now so the
-      // catalog reflects the correct stock count without any delay.
+      // ── Save/find customer record and optionally add Khata credit ─────────
+      if (shouldSave) {
+        try {
+          // Upsert customer: try to find by phone first, else create
+          let customerId: string | null = null;
+          if (cPhone) {
+            const search = await this.api.get<{ customers: Array<{ id: string }> }>(
+              `/api/v1/customers?search=${encodeURIComponent(cPhone)}`,
+            );
+            customerId = search.customers[0]?.id ?? null;
+          }
+          if (!customerId) {
+            const created = await this.api.post<{ id: string }>(
+              '/api/v1/customers',
+              { name: cName, phone: cPhone, cnic: cCnic },
+            );
+            customerId = created.id;
+          }
+
+          // Add CREDIT khata entry if toggle was on
+          if (shouldKhata && customerId) {
+            const orderTotal = Math.max(0, sub - disc);
+            await this.api.post(
+              `/api/v1/customers/${customerId}/transactions`,
+              { tx_type: 'CREDIT', amount: orderTotal,
+                order_id: o.id,
+                notes: `POS order ${o.order_number}` },
+            );
+            this.toast.success(`Khata updated — PKR ${orderTotal.toLocaleString('en-PK', { maximumFractionDigits: 0 })} added.`);
+          }
+        } catch {
+          // Non-fatal: checkout already succeeded
+          this.toast.warning('Order saved but customer record could not be updated.');
+        }
+      }
+
+      // ── Immediately update InventoryStore with decremented stock ──────────
       for (const line of lines) {
         const newStock = Math.max(0, line.item.stock - line.qty);
         this.inventoryStore.patchItem(line.item.id, { stock: newStock });
       }
 
-      // ── Add the new order to OrdersStore + IDB immediately ───────────────
+      // ── Add order to OrdersStore ──────────────────────────────────────────
       this.ordersStore.prependOrder({
         id:               o.id ?? crypto.randomUUID(),
         shop_id:          o.shop_id ?? this.shopStore.shopId() ?? '',
@@ -594,11 +688,8 @@ export class PosComponent implements OnInit {
         customer_phone: o.customer_phone ?? cPhone,
         customer_cnic:  o.customer_cnic ?? cCnic,
         items: items.map(i => ({
-          name_snapshot: i.nameSnapshot,
-          description:   i.description,
-          qty:           i.qty,
-          unit_price:    i.unitPrice,
-          line_total:    i.qty * i.unitPrice,
+          name_snapshot: i.nameSnapshot, description: i.description,
+          qty: i.qty, unit_price: i.unitPrice, line_total: i.qty * i.unitPrice,
         })),
       });
     } catch (err) {

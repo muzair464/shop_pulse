@@ -81,6 +81,11 @@ export const routes: Routes = [
           import('./features/orders/orders.component').then(m => m.OrdersComponent),
       },
       {
+        path: 'khata',
+        loadComponent: () =>
+          import('./features/khata/khata.component').then(m => m.KhataComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./features/settings/settings.component').then(m => m.SettingsComponent),
