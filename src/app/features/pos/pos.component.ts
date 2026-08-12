@@ -675,8 +675,8 @@ export class PosComponent implements OnInit {
     const disc   = this.discount();
     // Prefer linked customer, fall back to manual fields
     const linked  = this.linkedCustomer();
-    const cName   = linked?.name   ?? this.customer.name.trim()  || null;
-    const cPhone  = linked?.phone  ?? this.customer.phone.trim() || null;
+    const cName   = linked?.name  ?? (this.customer.name.trim()  || null);
+    const cPhone  = linked?.phone ?? (this.customer.phone.trim() || null);
     const cCnic   = this.customer.cnic.trim() || null;
     const shouldKhata = this.addToKhata() && (!!linked || !!cName);
 
