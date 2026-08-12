@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
   HostListener, ViewChild, ElementRef, ChangeDetectorRef,
 } from '@angular/core';
@@ -31,7 +31,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
   <!-- Outer: full viewport height minus nav, flex col on mobile, flex row on lg -->
   <div class="flex flex-col lg:flex-row gap-3 h-[calc(100vh-3.5rem-4rem)] lg:h-[calc(100vh-3.5rem-2rem)] min-h-0">
 
-    <!-- ── Catalog pane ──────────────────────────────────────────── -->
+    <!-- â”€â”€ Catalog pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="flex flex-col min-h-0 card overflow-hidden"
          [class.flex-1]="!cartExpanded()"
          [class.hidden]="cartExpanded() && isMobile">
@@ -46,7 +46,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
             [ngModel]="searchQuery()"
             (ngModelChange)="onSearchChange($event)"
             (keydown)="onSearchKeydown($event)"
-            placeholder="  Search products… (Alt+K)"
+            placeholder="  Search productsâ€¦ (Alt+K)"
             class="form-input pl-9 pr-4 text-sm"
             aria-label="Search products"
             aria-autocomplete="list"
@@ -118,7 +118,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
       </div>
     </div>
 
-    <!-- ── Cart pane ─────────────────────────────────────────────── -->
+    <!-- â”€â”€ Cart pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <!-- On mobile: fixed bottom sheet toggled by cartExpanded signal   -->
     <!-- On desktop: fixed right column, always visible                 -->
     <div class="lg:w-96 flex flex-col card overflow-hidden shrink-0"
@@ -280,7 +280,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
               @if (!linkedCustomer() && customerSearch().trim().length > 1 && !customerResults().length) {
                 <div class="space-y-1.5 pt-0.5">
                   <p class="text-[10px] text-gray-400 font-medium">
-                    No match — fill to create new customer:
+                    No match â€” fill to create new customer:
                   </p>
                   <input type="text" [(ngModel)]="customer.name"
                     placeholder="Full name (required)"
@@ -294,7 +294,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
                 </div>
               }
 
-              <!-- Add to Khata toggle — available for any payment method -->
+              <!-- Add to Khata toggle â€” available for any payment method -->
               @if (linkedCustomer() || customer.name.trim()) {
                 <label class="flex items-center gap-2 pt-0.5 cursor-pointer select-none">
                   <button type="button" role="switch"
@@ -388,7 +388,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
             [attr.aria-busy]="checkoutLoading()">
             @if (checkoutLoading()) {
               <lucide-icon [img]="Loader2Icon" size="16" class="animate-spin" aria-hidden="true" />
-              Processing…
+              Processingâ€¦
             } @else {
               <lucide-icon [img]="PrinterIcon" size="16" aria-hidden="true" />
               Complete &amp; Print
@@ -399,7 +399,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
     </div>
   </div>
 
-  <!-- ── Mobile cart toggle FAB ─────────────────────────────────── -->
+  <!-- â”€â”€ Mobile cart toggle FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <button type="button"
     class="lg:hidden fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-lg
            bg-primary-600 text-white flex items-center justify-center
@@ -433,23 +433,27 @@ export class PosComponent implements OnInit {
 
   @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
 
-  readonly SearchIcon    = Search;
-  readonly CartIcon      = ShoppingCart;
-  readonly PlusIcon      = Plus;
-  readonly MinusIcon     = Minus;
-  readonly Trash2Icon    = Trash2;
-  readonly PrinterIcon   = Printer;
-  readonly Loader2Icon   = Loader2;
-  readonly QrCodeIcon    = QrCode;
-  readonly UserIcon      = User;
+  // Icons
+  readonly SearchIcon      = Search;
+  readonly CartIcon        = ShoppingCart;
+  readonly PlusIcon        = Plus;
+  readonly MinusIcon       = Minus;
+  readonly Trash2Icon      = Trash2;
+  readonly PrinterIcon     = Printer;
+  readonly Loader2Icon     = Loader2;
+  readonly QrCodeIcon      = QrCode;
+  readonly UserIcon        = User;
   readonly ChevronDownIcon = ChevronDown;
   readonly ChevronUpIcon   = ChevronUp;
   readonly BookOpenIcon    = BookOpen;
   readonly CheckIcon       = Check;
-  readonly searchQuery  = signal('');
-  customer: CustomerInfo = { name: '', phone: '', cnic: '' };
+  readonly XIcon           = X;
+
+  // â”€â”€ Product search state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  readonly searchQuery    = signal('');
   get isMobile(): boolean { return window.innerWidth < 1024; }
 
+  // â”€â”€ Cart state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   readonly discount        = signal(0);
   readonly activeCategory  = signal('All');
   readonly cart            = signal<CartLine[]>([]);
@@ -458,16 +462,22 @@ export class PosComponent implements OnInit {
   readonly customerOpen    = signal(false);
   readonly cartExpanded    = signal(false);
   readonly focusedIdx      = signal(-1);
-  readonly saveAsCustomer  = signal(false);   // save/link customer record on checkout
-  readonly addToKhata      = signal(false);   // create CREDIT khata entry on checkout
+  readonly addToKhata      = signal(false);
+
+  // â”€â”€ Customer / Khata state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  customer: CustomerInfo                    = { name: '', phone: '', cnic: '' };
+  readonly customerSearch  = signal('');
+  readonly customerResults = signal<KhataCustomer[]>([]);
+  readonly linkedCustomer  = signal<KhataCustomer | null>(null);
+  private custSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly paymentMethods: { label: string; value: PaymentMethodType }[] = [
-    { label: 'Cash',       value: 'CASH' },
-    { label: 'Card',       value: 'CARD_KHATA' },
-    { label: 'Digital',    value: 'DIGITAL_PAY' },
+    { label: 'Cash',    value: 'CASH' },
+    { label: 'Card',    value: 'CARD_KHATA' },
+    { label: 'Digital', value: 'DIGITAL_PAY' },
   ];
 
-  // ── Derived ────────────────────────────────────────────────────
+  // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   readonly allCategories = computed(() => {
     const cats = [...new Set(this.inventoryStore.items().map(i => i.category))].sort();
     return ['All', ...cats];
@@ -482,37 +492,32 @@ export class PosComponent implements OnInit {
         || i.name.toLowerCase().includes(q)
         || i.category.toLowerCase().includes(q)
         || (i.description ?? '').toLowerCase().includes(q)
-        || (i.imei ?? '').includes(q)
+        || (i.imei  ?? '').includes(q)
         || (i.imei2 ?? '').includes(q)
-        || (i.sku ?? '').toLowerCase().includes(q);
+        || (i.sku   ?? '').toLowerCase().includes(q);
       return matchCat && matchQ;
     });
   });
 
-  readonly subtotal = computed(() =>
-    this.cart().reduce((s, l) => s + this.linePrice(l) * l.qty, 0),
-  );
-  readonly total    = computed(() => Math.max(0, this.subtotal() - this.discount()));
+  readonly subtotal  = computed(() =>
+    this.cart().reduce((s, l) => s + this.linePrice(l) * l.qty, 0));
+  readonly total     = computed(() => Math.max(0, this.subtotal() - this.discount()));
   readonly qrDataUri = computed(() => this.shopStore.paymentQrDataUri());
 
-  // ── Keyboard shortcuts ──────────────────────────────────────────
+  // â”€â”€ Keyboard shortcuts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   @HostListener('document:keydown', ['$event'])
   onKeydown(e: KeyboardEvent): void {
-    // Alt+K — focus search
     if (e.altKey && e.key === 'k') {
       e.preventDefault();
       if (this.isMobile) this.cartExpanded.set(false);
       this.searchInputRef?.nativeElement.focus();
-      return;
     }
   }
 
-  /** Keyboard navigation inside the search input */
   onSearchKeydown(e: KeyboardEvent): void {
     const products = this.filteredProducts();
     const len = products.length;
     if (len === 0) return;
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       this.focusedIdx.set((this.focusedIdx() + 1) % len);
@@ -523,8 +528,7 @@ export class PosComponent implements OnInit {
       this.scrollProductIntoView(this.focusedIdx());
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const idx = this.focusedIdx();
-      const item = idx >= 0 ? products[idx] : products[0];
+      const item = this.focusedIdx() >= 0 ? products[this.focusedIdx()] : products[0];
       if (item) this.addToCart(item);
     } else if (e.key === 'Escape') {
       this.searchQuery.set('');
@@ -534,21 +538,48 @@ export class PosComponent implements OnInit {
   }
 
   private scrollProductIntoView(idx: number): void {
-    setTimeout(() => {
-      document.getElementById('prod-' + idx)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 0);
+    setTimeout(() =>
+      document.getElementById('prod-' + idx)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 0);
   }
 
-  onSearchChange(value: string): void {
-    this.searchQuery.set(value);
-    this.focusedIdx.set(-1);
+  onSearchChange(value: string): void { this.searchQuery.set(value); this.focusedIdx.set(-1); }
+  setCategory(cat: string): void      { this.activeCategory.set(cat); this.focusedIdx.set(-1); }
+
+  // â”€â”€ Customer search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  onCustomerSearch(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.customerSearch.set(value);
+    this.customer.name = value; // mirror into manual field
+    if (this.custSearchTimer) clearTimeout(this.custSearchTimer);
+    if (!value.trim()) { this.customerResults.set([]); return; }
+    this.custSearchTimer = setTimeout(() => void this.searchCustomers(value), 300);
   }
 
-  setCategory(cat: string): void {
-    this.activeCategory.set(cat);
-    this.focusedIdx.set(-1);
+  private async searchCustomers(q: string): Promise<void> {
+    try {
+      const data = await this.api.get<{ customers: KhataCustomer[] }>(
+        `/api/v1/customers?search=${encodeURIComponent(q)}&status=all`,
+      );
+      this.customerResults.set(data.customers.slice(0, 5));
+      this.cdr.markForCheck();
+    } catch { /* silently ignore */ }
   }
 
+  linkCustomer(c: KhataCustomer): void {
+    this.linkedCustomer.set(c);
+    this.customerSearch.set(c.name);
+    this.customer = { name: c.name, phone: c.phone ?? '', cnic: '' };
+    this.customerResults.set([]);
+  }
+
+  unlinkCustomer(): void {
+    this.linkedCustomer.set(null);
+    this.customerSearch.set('');
+    this.customer = { name: '', phone: '', cnic: '' };
+    this.customerResults.set([]);
+  }
+
+  // â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async ngOnInit(): Promise<void> {
     if (!this.shopStore.shopId()) await this.shopStore.load();
     const shopId = this.shopStore.shopId();
@@ -557,19 +588,17 @@ export class PosComponent implements OnInit {
     }
   }
 
+  // â”€â”€ Cart operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   addToCart(item: InventoryItemRow): void {
     if (item.stock === 0) return;
     this.cart.update(lines => {
       const existing = lines.find(l => l.item.id === item.id);
       if (existing) {
-        if (existing.qty >= item.stock) {
-          this.toast.warning('No more stock available.'); return lines;
-        }
+        if (existing.qty >= item.stock) { this.toast.warning('No more stock available.'); return lines; }
         return lines.map(l => l.item.id === item.id ? { ...l, qty: l.qty + 1 } : l);
       }
       return [...lines, { item, qty: 1, customPrice: null }];
     });
-    // On mobile, briefly flash the cart badge
   }
 
   removeLine(line: CartLine): void {
@@ -604,13 +633,8 @@ export class PosComponent implements OnInit {
     this.discount.set(0);
     this.customer = { name: '', phone: '', cnic: '' };
     this.customerOpen.set(false);
-    this.saveAsCustomer.set(false);
     this.addToKhata.set(false);
-  }
-
-  paymentLabel(method: string): string {
-    const map: Record<string, string> = { CASH: 'Cash', CARD_KHATA: 'Card / Khata', DIGITAL_PAY: 'Digital Pay' };
-    return map[method] ?? method;
+    this.unlinkCustomer();
   }
 
   private printReceipt(order: {
@@ -620,19 +644,20 @@ export class PosComponent implements OnInit {
     items: Array<{ name_snapshot: string; description: string | null; qty: number; unit_price: number; line_total: number }>;
   }): void {
     this.receipt.print({
-      order_number:  order.order_number,
-      created_at:    order.created_at,
-      subtotal:      order.subtotal,
-      discount:      order.discount,
-      total:         order.total,
+      order_number:   order.order_number,
+      created_at:     order.created_at,
+      subtotal:       order.subtotal,
+      discount:       order.discount,
+      total:          order.total,
       payment_method: order.payment_method,
       customer_name:  order.customer_name,
       customer_phone: order.customer_phone,
       customer_cnic:  order.customer_cnic,
-      order_items:   order.items,
+      order_items:    order.items,
     });
   }
 
+  // â”€â”€ Checkout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async completeSale(): Promise<void> {
     const lines = this.cart();
     if (lines.length === 0) return;
@@ -640,17 +665,20 @@ export class PosComponent implements OnInit {
 
     const idempotencyKey = crypto.randomUUID();
     const items = lines.map(l => ({
-      inventoryId: l.item.id, qty: l.qty,
-      unitPrice: this.linePrice(l), nameSnapshot: l.item.name,
-      description: l.item.description ?? null,
+      inventoryId:  l.item.id,
+      qty:          l.qty,
+      unitPrice:    this.linePrice(l),
+      nameSnapshot: l.item.name,
+      description:  l.item.description ?? null,
     }));
     const sub    = this.subtotal();
     const disc   = this.discount();
-    const cName  = this.customer.name.trim()  || null;
-    const cPhone = this.customer.phone.trim() || null;
-    const cCnic  = this.customer.cnic.trim()  || null;
-    const shouldSave  = this.saveAsCustomer() && !!cName;
-    const shouldKhata = shouldSave && this.addToKhata() && this.paymentMethod() === 'CARD_KHATA';
+    // Prefer linked customer, fall back to manual fields
+    const linked  = this.linkedCustomer();
+    const cName   = linked?.name   ?? this.customer.name.trim()  || null;
+    const cPhone  = linked?.phone  ?? this.customer.phone.trim() || null;
+    const cCnic   = this.customer.cnic.trim() || null;
+    const shouldKhata = this.addToKhata() && (!!linked || !!cName);
 
     try {
       const result = await this.api.post<{ order: Record<string, unknown> }>(
@@ -667,49 +695,43 @@ export class PosComponent implements OnInit {
         customer_name: string | null; customer_phone: string | null; customer_cnic: string | null;
       };
 
-      // ── Save/find customer record and optionally add Khata credit ─────────
-      if (shouldSave) {
+      // â”€â”€ Khata credit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      if (shouldKhata) {
         try {
-          // Upsert customer: try to find by phone first, else create
-          let customerId: string | null = null;
-          if (cPhone) {
-            const search = await this.api.get<{ customers: Array<{ id: string }> }>(
+          let customerId = linked?.id ?? null;
+          if (!customerId && cPhone) {
+            const found = await this.api.get<{ customers: Array<{ id: string }> }>(
               `/api/v1/customers?search=${encodeURIComponent(cPhone)}`,
             );
-            customerId = search.customers[0]?.id ?? null;
+            customerId = found.customers[0]?.id ?? null;
           }
-          if (!customerId) {
+          if (!customerId && cName) {
             const created = await this.api.post<{ id: string }>(
               '/api/v1/customers',
               { name: cName, phone: cPhone, cnic: cCnic },
             );
             customerId = created.id;
           }
-
-          // Add CREDIT khata entry if toggle was on
-          if (shouldKhata && customerId) {
+          if (customerId) {
             const orderTotal = Math.max(0, sub - disc);
-            await this.api.post(
-              `/api/v1/customers/${customerId}/transactions`,
-              { tx_type: 'CREDIT', amount: orderTotal,
-                order_id: o.id,
-                notes: `POS order ${o.order_number}` },
-            );
-            this.toast.success(`Khata updated — PKR ${orderTotal.toLocaleString('en-PK', { maximumFractionDigits: 0 })} added.`);
+            await this.api.post(`/api/v1/customers/${customerId}/transactions`, {
+              tx_type:  'CREDIT',
+              amount:   orderTotal,
+              order_id: o.id,
+              notes:    `POS order ${o.order_number}`,
+            });
+            this.toast.success(
+              `Khata updated â€” PKR ${orderTotal.toLocaleString('en-PK', { maximumFractionDigits: 0 })} added.`);
           }
         } catch {
-          // Non-fatal: checkout already succeeded
-          this.toast.warning('Order saved but customer record could not be updated.');
+          this.toast.warning('Order saved but Khata could not be updated.');
         }
       }
 
-      // ── Immediately update InventoryStore with decremented stock ──────────
+      // â”€â”€ Update local stores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       for (const line of lines) {
-        const newStock = Math.max(0, line.item.stock - line.qty);
-        this.inventoryStore.patchItem(line.item.id, { stock: newStock });
+        this.inventoryStore.patchItem(line.item.id, { stock: Math.max(0, line.item.stock - line.qty) });
       }
-
-      // ── Add order to OrdersStore ──────────────────────────────────────────
       this.ordersStore.prependOrder({
         id:               o.id ?? crypto.randomUUID(),
         shop_id:          o.shop_id ?? this.shopStore.shopId() ?? '',
@@ -735,19 +757,22 @@ export class PosComponent implements OnInit {
         created_at:     o.created_at,
         subtotal:       o.subtotal ?? sub,
         discount:       o.discount ?? disc,
-        total:          o.total ?? Math.max(0, sub - disc),
+        total:          o.total    ?? Math.max(0, sub - disc),
         payment_method: o.payment_method ?? this.paymentMethod(),
         customer_name:  o.customer_name ?? cName,
         customer_phone: o.customer_phone ?? cPhone,
-        customer_cnic:  o.customer_cnic ?? cCnic,
+        customer_cnic:  o.customer_cnic  ?? cCnic,
         items: items.map(i => ({
-          name_snapshot: i.nameSnapshot, description: i.description,
-          qty: i.qty, unit_price: i.unitPrice, line_total: i.qty * i.unitPrice,
+          name_snapshot: i.nameSnapshot,
+          description:   i.description,
+          qty:           i.qty,
+          unit_price:    i.unitPrice,
+          line_total:    i.qty * i.unitPrice,
         })),
       });
     } catch (err) {
       if (err instanceof ApiError && err.isConflict)
-        this.toast.error('Stock changed — refresh and retry.');
+        this.toast.error('Stock changed â€” refresh and retry.');
       else
         this.toast.error('Checkout failed. Please try again.');
     } finally {
