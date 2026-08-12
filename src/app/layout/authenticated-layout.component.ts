@@ -24,6 +24,7 @@ import { InventoryStore } from '../core/inventory.store';
 import { OrdersStore } from '../core/orders.store';
 import { RealtimeSyncService } from '../core/realtime-sync.service';
 import { AuthService } from '../core/auth.service';
+import { BackupService } from '../core/backup.service';
 
 @Component({
   selector: 'app-authenticated-layout',
@@ -52,6 +53,7 @@ export class AuthenticatedLayoutComponent implements OnInit, OnDestroy {
   private readonly ordersStore    = inject(OrdersStore);
   private readonly realtime       = inject(RealtimeSyncService);
   private readonly router         = inject(Router);
+  private readonly backupService  = inject(BackupService);
 
   isPosRoute = false;
   private routerSub?: Subscription;
@@ -82,6 +84,10 @@ export class AuthenticatedLayoutComponent implements OnInit, OnDestroy {
       this.inventoryStore.load(shopId),
       this.ordersStore.load(shopId),
     ]);
+
+    // Daily backup — runs silently in background after stores are ready.
+    // Uses localStorage to ensure it only triggers once per calendar day.
+    void this.backupService.runDailyIfNeeded();
   }
 
   ngOnDestroy(): void {

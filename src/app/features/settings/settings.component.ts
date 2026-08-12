@@ -5,12 +5,14 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   LucideAngularModule,
   Save, Loader2, Eye, EyeOff, Trash2, Upload, Download, Printer, Shield, Monitor,
+  HardDrive, CheckCircle,
 } from 'lucide-angular';
 import { ShopStore } from '../../core/shop.store';
 import { AuthService } from '../../core/auth.service';
 import { ApiClient, ApiError } from '../../core/api.client';
 import { ToastService } from '../../core/toast.service';
 import { ExportCsvButtonComponent } from '../../shared/export-csv-button.component';
+import { BackupService } from '../../core/backup.service';
 
 @Component({
   selector: 'app-settings',
@@ -122,6 +124,44 @@ import { ExportCsvButtonComponent } from '../../shared/export-csv-button.compone
         </div>
       </div>
 
+      <!-- Local Backup -->
+      <div class="card p-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+          <lucide-icon [img]="HardDriveIcon" size="16" class="text-gray-400" aria-hidden="true" />
+          Local Backup
+        </h2>
+        <p class="text-xs text-gray-400 mb-4">
+          Downloads all tables as individual CSV files named exactly after each database table.
+          A backup runs automatically once per day when you open the app.
+        </p>
+        <div class="flex flex-wrap items-center gap-4">
+          <button type="button" (click)="runBackupNow()" [disabled]="backupRunning()"
+            class="btn-secondary">
+            @if (backupRunning()) {
+              <lucide-icon [img]="Loader2Icon" size="14" class="animate-spin" aria-hidden="true" />
+              Backing up...
+            } @else {
+              <lucide-icon [img]="HardDriveIcon" size="14" aria-hidden="true" />
+              Backup Now
+            }
+          </button>
+          @if (lastBackupDate()) {
+            <span class="flex items-center gap-1.5 text-xs text-gray-500">
+              <lucide-icon [img]="CheckCircleIcon" size="13" class="text-green-500" aria-hidden="true" />
+              Last backup: {{ lastBackupDate() }}
+            </span>
+          }
+        </div>
+        <div class="mt-3">
+          <p class="text-xs text-gray-400">
+            Tables exported:
+            <span class="font-mono text-gray-600">
+              shops, inventory_items, orders, order_items, customers, khata_transactions, devices
+            </span>
+          </p>
+        </div>
+      </div>
+
       <!-- Data Export -->
       <div class="card p-6">
         <h2 class="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
@@ -178,17 +218,20 @@ export class SettingsComponent implements OnInit {
   private readonly api       = inject(ApiClient);
   private readonly toast     = inject(ToastService);
   private readonly fb        = inject(FormBuilder);
+  private readonly backup    = inject(BackupService);
 
-  readonly SaveIcon      = Save;
-  readonly Loader2Icon   = Loader2;
-  readonly EyeIcon       = Eye;
-  readonly EyeOffIcon    = EyeOff;
-  readonly Trash2Icon    = Trash2;
-  readonly UploadIcon    = Upload;
-  readonly DownloadIcon  = Download;
-  readonly PrinterIcon   = Printer;
-  readonly ShieldIcon    = Shield;
-  readonly MonitorIcon   = Monitor;
+  readonly SaveIcon          = Save;
+  readonly Loader2Icon       = Loader2;
+  readonly EyeIcon           = Eye;
+  readonly EyeOffIcon        = EyeOff;
+  readonly Trash2Icon        = Trash2;
+  readonly UploadIcon        = Upload;
+  readonly DownloadIcon      = Download;
+  readonly PrinterIcon       = Printer;
+  readonly ShieldIcon        = Shield;
+  readonly MonitorIcon       = Monitor;
+  readonly HardDriveIcon     = HardDrive;
+  readonly CheckCircleIcon   = CheckCircle;
 
   readonly profileSaving       = signal(false);
   readonly passwordSaving      = signal(false);
@@ -198,6 +241,8 @@ export class SettingsComponent implements OnInit {
   readonly qrSaving            = signal(false);
   readonly autoPrintReceipt    = signal(true);
   readonly autoExportFrequency = signal('weekly');
+  readonly backupRunning       = signal(false);
+  readonly lastBackupDate      = signal<string | null>(this.backup.lastBackupDate);
 
   toggleShowNewPass(): void { this.showNewPass.update(v => !v); }
 
@@ -325,15 +370,26 @@ export class SettingsComponent implements OnInit {
   async toggleAutoPrint(): Promise<void> {
     const next = !this.autoPrintReceipt();
     this.autoPrintReceipt.set(next);
-    // Write through to ShopStore → IDB immediately (optimistic).
     this.shopStore.patch({ autoPrintReceipt: next });
     try {
       await this.api.patch('/api/v1/settings', { autoPrintReceipt: next });
     } catch {
-      // Rollback
       this.autoPrintReceipt.set(!next);
       this.shopStore.patch({ autoPrintReceipt: !next });
       this.toast.error('Failed to update print setting.');
+    }
+  }
+
+  async runBackupNow(): Promise<void> {
+    this.backupRunning.set(true);
+    try {
+      await this.backup.runBackup();
+      this.lastBackupDate.set(this.backup.lastBackupDate);
+      this.toast.success('Backup complete — CSV files downloaded.');
+    } catch {
+      this.toast.error('Backup failed. Please try again.');
+    } finally {
+      this.backupRunning.set(false);
     }
   }
 }
