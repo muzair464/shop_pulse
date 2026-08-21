@@ -1,49 +1,28 @@
 /**
- * session-cache.service.ts — eliminates boot-flicker by caching the
- * last-known session state in sessionStorage.
+ * session-cache.service.ts — session state is always fetched fresh from the
+ * server (GET /api/v1/auth/session). No browser storage (sessionStorage,
+ * localStorage, or IndexedDB) is used to persist auth state.
  *
- * Why sessionStorage and not localStorage?
- *  - sessionStorage is cleared when the browser tab is closed, preventing
- *    stale "authenticated" state from persisting after the httpOnly cookie
- *    has expired in a different tab.
- *  - On a normal refresh (same tab) sessionStorage survives, so the UI
- *    renders instantly with the cached user/shop before the network resolves.
- *
- * The cache is only used as a UI hint — the real auth check (GET /auth/session)
- * still fires in the background and overwrites this value.  If the network
- * returns unauthenticated the guard re-checks and redirects to /signin.
+ * This service is kept as a no-op shim so call sites in AuthService do not
+ * need to be changed; every method is intentionally a no-op.
  */
 import { Injectable } from '@angular/core';
 import type { SessionState } from './auth.service';
 
-const KEY = 'sp_session';
-
 @Injectable({ providedIn: 'root' })
 export class SessionCacheService {
-  /** Read the cached session synchronously. Returns null if nothing is cached. */
+  /** Always returns null — session is fetched from the server on every boot. */
   read(): SessionState | null {
-    try {
-      const raw = sessionStorage.getItem(KEY);
-      if (!raw) return null;
-      return JSON.parse(raw) as SessionState;
-    } catch {
-      return null;
-    }
+    return null;
   }
 
-  /** Persist session state after a successful auth check. */
-  write(state: SessionState): void {
-    try {
-      sessionStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-      // Quota exceeded or private browsing — ignore silently.
-    }
+  /** No-op — session state is not persisted to any browser storage. */
+  write(_state: SessionState): void {
+    // intentionally empty
   }
 
-  /** Clear on sign-out so the next tab load starts fresh. */
+  /** No-op — nothing to clear. */
   clear(): void {
-    try {
-      sessionStorage.removeItem(KEY);
-    } catch { /* ignore */ }
+    // intentionally empty
   }
 }

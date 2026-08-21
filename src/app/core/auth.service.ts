@@ -46,18 +46,17 @@ export class AuthService implements OnDestroy {
   // ── Signals ──────────────────────────────────────────────────────────────
 
   /**
-   * Pre-populated from sessionStorage so the guard resolves synchronously
-   * on refresh — zero flicker.  Overwritten once the network check resolves.
+   * Always starts unauthenticated — the real state is fetched from the
+   * server in _verifySession() on every boot. No browser storage is read.
    */
   private readonly _session = signal<SessionState>(
-    this.sessionCache.read() ?? { authenticated: false, user: null, shop: null },
+    { authenticated: false, user: null, shop: null },
   );
   /**
-   * _loading is false immediately if we have a cached session (guard can
-   * proceed without waiting).  It becomes true only while the background
-   * network verify is in-flight for the first uncached boot.
+   * Always true on boot — the guard waits for _verifySession() to complete
+   * before making any navigation decision.
    */
-  private readonly _loading = signal(!this.sessionCache.read());
+  private readonly _loading = signal(true);
 
   readonly session         = this._session.asReadonly();
   readonly loading         = this._loading.asReadonly();

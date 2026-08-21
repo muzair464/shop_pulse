@@ -520,7 +520,6 @@ export class InventoryComponent implements OnInit {
     try {
       if (editing) {
         // Optimistic update
-        const original = { ...editing };
         this.inventoryStore.patchItem(editing.id, {
           name: val.name, description: val.description || null,
           category: val.category, stock: Number(val.stock),
@@ -528,13 +527,21 @@ export class InventoryComponent implements OnInit {
           selling_price: Number(val.selling_price),
         });
 
+        // Always read the current version from the live store rather than
+        // from the snapshot captured when the modal opened — a realtime
+        // update from another device may have incremented the version while
+        // this modal was open, which would cause a spurious 409.
+        const liveVersion =
+          this.inventoryStore.items().find(i => i.id === editing.id)?.version
+          ?? editing.version;
+
         const updated = await this.api.patch<InventoryItemRow>(`/api/v1/inventory/${editing.id}`, {
           name: val.name, description: val.description || null,
           category: val.category, stock: Number(val.stock),
           imei: val.imei || null, imei2: val.imei2 || null,
           sku: val.sku || null, cost_price: Number(val.cost_price),
           selling_price: Number(val.selling_price),
-          version: editing.version,
+          version: liveVersion,
         });
         this.inventoryStore.upsertItem(updated);
         this.toast.success('Item updated.');
