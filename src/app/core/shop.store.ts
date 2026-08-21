@@ -1,19 +1,11 @@
 /**
- * shop.store.ts — offline-first signal store for the shop profile.
+ * shop.store.ts — server-first signal store for the shop profile.
  *
- * Boot sequence:
- *  1. Read from IndexedDB → signal populated immediately.
- *  2. Fetch fresh copy from GET /api/v1/settings in the background.
- *  3. Write updated profile back to IndexedDB.
- *
- * Settings change infrequently so we always do a full refresh (no delta).
- * The QR image is a binary blob stored as a base64 data URI — unchanged
- * between loads if the user hasn't touched it.
+ * Every load fetches fresh data from GET /api/v1/settings.
+ * No IndexedDB, no local cache.
  */
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { ApiClient } from './api.client';
-import { LocalDbService } from './local-db.service';
-import { AuthService } from './auth.service';
 
 export interface ShopProfile {
   id:                  string;
@@ -27,9 +19,7 @@ export interface ShopProfile {
 
 @Injectable({ providedIn: 'root' })
 export class ShopStore {
-  private readonly api     = inject(ApiClient);
-  private readonly auth    = inject(AuthService);
-  private readonly localDb = inject(LocalDbService);
+  private readonly api = inject(ApiClient);
 
   private readonly _shop    = signal<ShopProfile | null>(null);
   private readonly _loading = signal(false);
@@ -45,27 +35,18 @@ export class ShopStore {
   private _loadPromise: Promise<void> | null = null;
 
   async load(): Promise<void> {
-    // Deduplicate concurrent calls — layout and dashboard both call load() on refresh.
+    // Deduplicate concurrent calls — layout and dashboard both call load().
     if (this._loadPromise) return this._loadPromise;
     this._loadPromise = this._doLoad().finally(() => { this._loadPromise = null; });
     return this._loadPromise;
   }
 
   private async _doLoad(): Promise<void> {
-    // ── Step 1: instant paint from IDB ────────────────────────────────────
-    const shopId = this.auth.currentShop()?.id;
-    if (shopId && !this._shop()) {
-      const cached = await this.localDb.getShop(shopId);
-      if (cached) this._shop.set(cached);
-    }
-
-    // ── Step 2: refresh from network ──────────────────────────────────────
     this._loading.set(true);
     this._error.set(null);
     try {
       const data = await this.api.get<ShopProfile>('/api/v1/settings');
       this._shop.set(data);
-      void this.localDb.putShop(data);
     } catch (err) {
       this._error.set(err instanceof Error ? err.message : 'Failed to load shop.');
     } finally {
@@ -73,16 +54,14 @@ export class ShopStore {
     }
   }
 
+  /** Optimistic in-memory patch — applied immediately, server call is the caller's job. */
   patch(partial: Partial<ShopProfile> | Record<string, unknown>): void {
     const current = this._shop();
     if (!current) return;
-    const updated = { ...current, ...(partial as Partial<ShopProfile>) };
-    this._shop.set(updated);
-    void this.localDb.putShop(updated);
+    this._shop.set({ ...current, ...(partial as Partial<ShopProfile>) });
   }
 
   clear(): void {
     this._shop.set(null);
-    void this.localDb.clearShop();
   }
 }

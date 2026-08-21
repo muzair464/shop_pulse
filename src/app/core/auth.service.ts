@@ -3,7 +3,6 @@ import { Router } from '@angular/router';
 import { ApiClient, ApiError } from './api.client';
 import { SessionCacheService } from './session-cache.service';
 import { TokenRefreshService } from './token-refresh.service';
-import { LocalDbService } from './local-db.service';
 
 export interface SessionUser {
   id:    string;
@@ -41,7 +40,6 @@ export class AuthService implements OnDestroy {
   private readonly api          = inject(ApiClient);
   private readonly sessionCache = inject(SessionCacheService);
   private readonly tokenRefresh = inject(TokenRefreshService);
-  private readonly localDb      = inject(LocalDbService);
 
   // ── Signals ──────────────────────────────────────────────────────────────
 
@@ -136,8 +134,6 @@ export class AuthService implements OnDestroy {
     this._session.set(cleared);
     this.sessionCache.clear();
     this.tokenRefresh.stop();
-    // Wipe all local IndexedDB data so the next user starts clean.
-    void this.localDb.clearAll();
     void this.router.navigate(['/signin'], { replaceUrl: true });
   }
 

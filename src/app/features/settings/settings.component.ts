@@ -242,7 +242,7 @@ export class SettingsComponent implements OnInit {
   readonly autoPrintReceipt    = signal(true);
   readonly autoExportFrequency = signal('weekly');
   readonly backupRunning       = signal(false);
-  readonly lastBackupDate      = signal<string | null>(this.backup.lastBackupDate);
+  readonly lastBackupDate      = signal<string | null>(null);
 
   toggleShowNewPass(): void { this.showNewPass.update(v => !v); }
 
@@ -384,7 +384,7 @@ export class SettingsComponent implements OnInit {
     this.backupRunning.set(true);
     try {
       await this.backup.runBackup();
-      this.lastBackupDate.set(this.backup.lastBackupDate);
+      this.lastBackupDate.set(this.backup.todayStr);
       this.toast.success('Backup complete — CSV files downloaded.');
     } catch {
       this.toast.error('Backup failed. Please try again.');
