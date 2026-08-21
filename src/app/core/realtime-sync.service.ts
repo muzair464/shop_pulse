@@ -1,28 +1,44 @@
 /**
  * realtime-sync.service.ts
  *
- * One Supabase Realtime WebSocket per authenticated session.
- * Subscribes to postgres_changes for inventory_items, orders, and shops.
+ * Connects to the Node.js backend's native WebSocket at /api/v1/ws/sync.
+ * No Supabase SDK, no Supabase Realtime, no browser storage.
  *
- * Key changes from original:
- *  - _refetchAll uses delta sync (passes shopId + respects IDB cursors)
- *    instead of doing full reloads on every reconnect.
- *  - All upsert/remove helpers in InventoryStore and OrdersStore now
- *    write through to IndexedDB, so Realtime events are persisted.
+ * Message types from the server:
+ *  { type: 'change', table: string, op: string, id: string, row?: unknown }
+ *  { type: 'session_revoked' }
+ *
+ * On reconnect, all stores are reloaded from the server to recover any
+ * changes that arrived while the socket was disconnected.
  */
 import { Injectable, inject, OnDestroy } from '@angular/core';
-import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from './auth.service';
 import { ShopStore } from './shop.store';
 import { InventoryStore } from './inventory.store';
 import { OrdersStore } from './orders.store';
 import type { InventoryItemRow, OrderRow } from './database.types';
 
-declare const SUPABASE_URL:      string;
-declare const SUPABASE_ANON_KEY: string;
+declare const API_URL: string;
 
-function getUrl():     string { try { return SUPABASE_URL;      } catch { return ''; } }
-function getAnonKey(): string { try { return SUPABASE_ANON_KEY; } catch { return ''; } }
+function getApiUrl(): string {
+  try { return API_URL; } catch { return 'https://shop-pulse-api.vercel.app'; }
+}
+
+/** Convert an HTTP(S) base URL to its WS(S) equivalent. */
+function toWsUrl(base: string, path: string): string {
+  return base.replace(/^http/, 'ws').replace(/\/$/, '') + path;
+}
+
+interface WsMessage {
+  type:   'change' | 'session_revoked' | 'ping';
+  table?: string;
+  op?:    string;
+  id?:    string;
+  row?:   unknown;
+}
+
+const INITIAL_RECONNECT_MS = 1_000;
+const MAX_RECONNECT_MS     = 30_000;
 
 @Injectable({ providedIn: 'root' })
 export class RealtimeSyncService implements OnDestroy {
@@ -31,104 +47,119 @@ export class RealtimeSyncService implements OnDestroy {
   private readonly inventoryStore = inject(InventoryStore);
   private readonly ordersStore    = inject(OrdersStore);
 
-  private supabase:      SupabaseClient   | null = null;
-  private dbChannel:     RealtimeChannel  | null = null;
-  private deviceChannel: RealtimeChannel  | null = null;
-  private shopId   = '';
-  private deviceId = '';
+  private ws:              WebSocket | null = null;
+  private shopId           = '';
+  private reconnectDelay   = INITIAL_RECONNECT_MS;
+  private reconnectTimer:  ReturnType<typeof setTimeout> | null = null;
+  private stopped          = false;
 
-  start(shopId: string, deviceId?: string): void {
-    if (this.dbChannel) return; // already running
-    this.shopId   = shopId;
-    this.deviceId = deviceId ?? '';
-
-    this.supabase = createClient(getUrl(), getAnonKey(), {
-      realtime: { params: { eventsPerSecond: 10 } },
-    });
-
-    // ── Postgres changes channel ──────────────────────────────────────────
-    this.dbChannel = this.supabase
-      .channel(`shop:${shopId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory_items', filter: `shop_id=eq.${shopId}` },
-        payload => this._onInventory(payload),
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` },
-        payload => this._onOrder(payload),
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'shops', filter: `id=eq.${shopId}` },
-        payload => this._onShop(payload),
-      )
-      .subscribe(status => {
-        if (status === 'SUBSCRIBED') {
-          // On reconnect, use delta sync so we only fetch rows that
-          // changed while the WebSocket was disconnected.
-          void this._refetchDeltas();
-        }
-      });
-
-    // ── Device revocation broadcast channel ──────────────────────────────
-    if (this.deviceId) {
-      this.deviceChannel = this.supabase
-        .channel(`device:${this.deviceId}`)
-        .on('broadcast', { event: 'session_revoked' }, () => {
-          void this.auth.signOut();
-        })
-        .subscribe();
-    }
+  /** Call once after sign-in. shopId is used to scope refetch calls. */
+  start(shopId: string, _deviceId?: string): void {
+    if (this.ws) return; // already running
+    this.shopId  = shopId;
+    this.stopped = false;
+    this._connect();
   }
 
   stop(): void {
-    if (this.supabase) {
-      if (this.dbChannel)     void this.supabase.removeChannel(this.dbChannel);
-      if (this.deviceChannel) void this.supabase.removeChannel(this.deviceChannel);
-      this.dbChannel     = null;
-      this.deviceChannel = null;
-      this.supabase      = null;
+    this.stopped = true;
+    this._clearReconnectTimer();
+    if (this.ws) {
+      this.ws.onclose = null; // prevent auto-reconnect on intentional close
+      this.ws.close();
+      this.ws = null;
     }
   }
 
-  // ── Postgres change handlers ──────────────────────────────────────────────
+  // ── WebSocket lifecycle ───────────────────────────────────────────────────
 
-  private _onInventory(payload: {
-    eventType: string;
-    new: Record<string, unknown>;
-    old: Record<string, unknown>;
-  }): void {
-    const { eventType, new: row, old } = payload;
-    if (eventType === 'DELETE') {
-      const id = (old['id'] ?? row['id']) as string | undefined;
-      if (id) this.inventoryStore.removeItem(id); // also removes from IDB
-    } else {
-      this.inventoryStore.upsertItem(row as unknown as InventoryItemRow); // also writes IDB
+  private _connect(): void {
+    const url = toWsUrl(getApiUrl(), '/api/v1/ws/sync');
+    const ws  = new WebSocket(url);
+    this.ws   = ws;
+
+    ws.onopen = () => {
+      this.reconnectDelay = INITIAL_RECONNECT_MS;
+      // Refetch all stores once connected — recovers any changes missed
+      // while disconnected.
+      void this._refetchAll();
+    };
+
+    ws.onmessage = (event: MessageEvent<string>) => {
+      try {
+        const msg = JSON.parse(event.data) as WsMessage;
+        this._handleMessage(msg);
+      } catch { /* malformed frame — ignore */ }
+    };
+
+    ws.onerror = () => {
+      // onerror is always followed by onclose — let onclose handle reconnect.
+    };
+
+    ws.onclose = () => {
+      this.ws = null;
+      if (!this.stopped) this._scheduleReconnect();
+    };
+  }
+
+  private _scheduleReconnect(): void {
+    this._clearReconnectTimer();
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (!this.stopped) this._connect();
+    }, this.reconnectDelay);
+
+    // Exponential backoff capped at MAX_RECONNECT_MS.
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_MS);
+  }
+
+  private _clearReconnectTimer(): void {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
   }
 
-  private _onOrder(payload: { new: Record<string, unknown> }): void {
-    // prependOrder writes through to IDB automatically.
-    this.ordersStore.prependOrder(payload.new as unknown as OrderRow);
+  // ── Message handling ──────────────────────────────────────────────────────
+
+  private _handleMessage(msg: WsMessage): void {
+    if (msg.type === 'session_revoked') {
+      void this.auth.signOut();
+      return;
+    }
+
+    if (msg.type === 'ping') return;
+
+    if (msg.type === 'change') {
+      switch (msg.table) {
+        case 'inventory_items':
+          if (msg.op === 'DELETE') {
+            if (msg.id) this.inventoryStore.removeItem(msg.id);
+          } else if (msg.row) {
+            this.inventoryStore.upsertItem(msg.row as InventoryItemRow);
+          }
+          break;
+
+        case 'orders':
+          if (msg.op === 'INSERT' && msg.row) {
+            this.ordersStore.prependOrder(msg.row as OrderRow);
+          }
+          break;
+
+        case 'shops':
+          if (msg.row) {
+            this.shopStore.patch(msg.row as Record<string, unknown>);
+          }
+          break;
+      }
+    }
   }
 
-  private _onShop(payload: { new: Record<string, unknown> }): void {
-    // ShopStore.patch writes through to IDB automatically.
-    this.shopStore.patch(payload.new);
-  }
-
-  /**
-   * Called on SUBSCRIBED — re-syncs only rows that changed since the
-   * last known cursor in IndexedDB, not a full reload.
-   */
-  private async _refetchDeltas(): Promise<void> {
+  /** Full reload of all stores from the server. */
+  private async _refetchAll(): Promise<void> {
     await Promise.all([
-      // force=false → reads IDB cursor → fetches only new/updated rows
-      this.inventoryStore.load(this.shopId, false),
-      this.ordersStore.load(this.shopId, false),
-      // ShopStore always does a full refresh (settings are tiny)
+      this.inventoryStore.load(this.shopId),
+      this.ordersStore.load(this.shopId),
       this.shopStore.load(),
     ]);
   }
