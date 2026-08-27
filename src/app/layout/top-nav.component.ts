@@ -14,14 +14,16 @@ import { ShopStore } from '../core/shop.store';
   imports: [RouterLink, RouterLinkActive, LucideAngularModule],
   template: `
     <!-- ── Desktop top nav ─────────────────────────────────────────── -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <nav class="bg-white border-b border-gray-200/80 sticky top-0 z-40 shadow-[0_1px_0_0_rgb(0_0_0/0.06)]">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-14 items-center justify-between">
 
           <!-- Brand -->
           <div class="flex items-center gap-2 min-w-0">
-            <lucide-icon [img]="ZapIcon" size="20" class="text-primary-600 shrink-0" aria-hidden="true" />
-            <span class="text-base font-bold text-gray-900 tracking-tight truncate">ShopPulse</span>
+            <div class="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center shrink-0 shadow-sm">
+              <lucide-icon [img]="ZapIcon" size="16" class="text-white" aria-hidden="true" />
+            </div>
+            <span class="text-[15px] font-bold text-ink tracking-tight truncate">ShopPulse</span>
             @if (shopName()) {
               <span class="hidden sm:inline text-xs text-gray-400 font-normal ml-1 truncate max-w-[120px]">
                 · {{ shopName() }}
@@ -33,10 +35,10 @@ import { ShopStore } from '../core/shop.store';
           <div class="hidden md:flex items-center gap-0.5">
             @for (link of navLinks; track link.path) {
               <a [routerLink]="link.path"
-                routerLinkActive="bg-primary-50 text-primary-700 font-semibold"
+                routerLinkActive="bg-primary-50 text-primary-600 font-semibold"
                 [routerLinkActiveOptions]="{ exact: false }"
-                class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-600
-                       hover:bg-gray-100 hover:text-gray-900 transition-colors whitespace-nowrap"
+                class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-500
+                       hover:bg-surface-raised hover:text-ink transition-all duration-150 ease-sp whitespace-nowrap"
                 [attr.aria-label]="link.label">
                 <lucide-icon [img]="link.icon" size="15" aria-hidden="true" />
                 {{ link.label }}
@@ -46,8 +48,8 @@ import { ShopStore } from '../core/shop.store';
 
           <!-- Right side: sign out (desktop) -->
           <button type="button" (click)="logout()"
-            class="hidden md:flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-500
-                   hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+            class="hidden md:flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-400
+                   hover:bg-danger-50 hover:text-danger-600 transition-all duration-150 ease-sp shrink-0"
             aria-label="Sign out">
             <lucide-icon [img]="LogOutIcon" size="15" aria-hidden="true" />
             Sign out
@@ -55,8 +57,8 @@ import { ShopStore } from '../core/shop.store';
 
           <!-- Mobile: sign out icon only -->
           <button type="button" (click)="logout()"
-            class="flex md:hidden items-center justify-center w-9 h-9 rounded-lg text-gray-500
-                   hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+            class="flex md:hidden items-center justify-center w-9 h-9 rounded-lg text-gray-400
+                   hover:bg-danger-50 hover:text-danger-600 transition-all duration-150 ease-sp shrink-0"
             aria-label="Sign out">
             <lucide-icon [img]="LogOutIcon" size="16" aria-hidden="true" />
           </button>
@@ -66,14 +68,15 @@ import { ShopStore } from '../core/shop.store';
 
     <!-- ── Mobile bottom tab bar ────────────────────────────────────── -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50
-                bg-white border-t border-gray-200 flex items-stretch"
+                bg-white border-t border-gray-200/80 flex items-stretch
+                shadow-[0_-1px_0_0_rgb(0_0_0/0.06)]"
          aria-label="Main navigation">
       @for (link of navLinks; track link.path) {
         <a [routerLink]="link.path"
           routerLinkActive="text-primary-600"
           [routerLinkActiveOptions]="{ exact: false }"
           class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 px-1
-                 text-gray-400 hover:text-gray-700 transition-colors min-w-0"
+                 text-gray-400 hover:text-ink transition-colors duration-150 ease-sp min-w-0"
           [attr.aria-label]="link.label">
           <lucide-icon [img]="link.icon" size="20" aria-hidden="true" />
           <span class="text-[10px] font-medium leading-none truncate w-full text-center">

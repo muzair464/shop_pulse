@@ -44,28 +44,28 @@ type TabFilter = 'all' | 'NEW' | 'USED';
       <!-- Inventory-specific stats -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Total Items</p>
-          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ inventoryStore.totalCount() }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Total Items</p>
+          <p class="text-xl font-extrabold text-ink tabular-nums">{{ inventoryStore.totalCount() }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">In Stock</p>
-          <p class="text-xl font-bold text-green-600 tabular-nums">{{ inventoryStore.inStockCount() }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">In Stock</p>
+          <p class="text-xl font-extrabold text-success-600 tabular-nums">{{ inventoryStore.inStockCount() }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Out of Stock</p>
-          <p class="text-xl font-bold text-red-600 tabular-nums">{{ inventoryStore.outOfStockCount() }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Out of Stock</p>
+          <p class="text-xl font-extrabold text-danger-600 tabular-nums">{{ inventoryStore.outOfStockCount() }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Low Stock</p>
-          <p class="text-xl font-bold text-yellow-600 tabular-nums">{{ inventoryStore.lowStockCount() }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Low Stock</p>
+          <p class="text-xl font-extrabold text-warning-600 tabular-nums">{{ inventoryStore.lowStockCount() }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Cost Value</p>
-          <p class="text-lg font-bold text-gray-900 tabular-nums">{{ inventoryStore.totalStockValue() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Cost Value</p>
+          <p class="text-lg font-extrabold text-ink tabular-nums">{{ inventoryStore.totalStockValue() | number:'1.0-0' }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Retail Value</p>
-          <p class="text-lg font-bold text-primary-700 tabular-nums">{{ inventoryStore.totalRetailValue() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Retail Value</p>
+          <p class="text-lg font-extrabold text-primary-500 tabular-nums">{{ inventoryStore.totalRetailValue() | number:'1.0-0' }}</p>
         </div>
       </div>
 
@@ -85,10 +85,10 @@ type TabFilter = 'all' | 'NEW' | 'USED';
             <button type="button" role="tab"
               (click)="activeTab.set(tab.value)"
               [attr.aria-selected]="activeTab() === tab.value"
-              class="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap"
+              class="px-3 py-1.5 text-sm font-medium rounded-lg border transition-all duration-150 ease-sp whitespace-nowrap"
               [class]="activeTab() === tab.value
-                ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
+                ? 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-surface-raised hover:text-gray-800'">
               {{ tab.label }}
               <span class="ml-1 text-xs opacity-70">({{ tab.count() }})</span>
             </button>
@@ -156,89 +156,94 @@ type TabFilter = 'all' | 'NEW' | 'USED';
       </div>
 
       <!-- Desktop: table -->
-      <div class="hidden sm:block overflow-hidden rounded-lg border border-gray-200 bg-white mb-4">
+      <div class="hidden sm:block overflow-hidden rounded-xl border border-gray-200/80 bg-white mb-4">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-surface-raised">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cost</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Item</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Stock</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Cost</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
+                <th class="px-4 py-3 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-gray-100/80">
               @if (inventoryStore.loading()) {
                 @for (i of [1,2,3,4,5]; track i) {
-                  <tr class="animate-pulse">
+                  <tr>
                     @for (j of [1,2,3,4,5,6,7]; track j) {
-                      <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-3/4"></div></td>
+                      <td class="px-4 py-3.5"><div class="h-4 skeleton w-3/4"></div></td>
                     }
                   </tr>
                 }
               } @else if (pagedItems().length === 0) {
                 <tr>
-                  <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">No inventory items found.</td>
+                  <td colspan="7" class="px-4 py-16 text-center">
+                    <lucide-icon [img]="SearchIcon" size="28" class="mx-auto mb-2 text-gray-200" aria-hidden="true" />
+                    <p class="text-sm text-gray-400">No inventory items found.</p>
+                  </td>
                 </tr>
               } @else {
                 @for (item of pagedItems(); track item.id) {
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 max-w-[200px]">
-                      <div class="font-medium text-sm text-gray-900 truncate">{{ item.name }}</div>
+                  <tr class="hover:bg-surface-raised/60 transition-colors duration-100 ease-sp">
+                    <td class="px-4 py-3.5 max-w-[200px]">
+                      <div class="font-semibold text-sm text-ink truncate">{{ item.name }}</div>
                       @if (item.description) {
-                        <div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ item.description }}</div>
+                        <div class="text-xs text-gray-400 mt-0.5 line-clamp-1">{{ item.description }}</div>
                       }
                       @if (item.imei) {
-                        <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ item.imei }}</div>
+                        <div class="text-2xs text-gray-400 font-mono mt-0.5 truncate">{{ item.imei }}</div>
                       }
                       @if (item.imei2) {
-                        <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">IMEI 2: {{ item.imei2 }}</div>
+                        <div class="text-2xs text-gray-400 font-mono mt-0.5 truncate">IMEI 2: {{ item.imei2 }}</div>
                       }
                       @if (item.sku) {
-                        <div class="text-xs text-gray-400 mt-0.5 truncate">SKU: {{ item.sku }}</div>
+                        <div class="text-2xs text-gray-400 mt-0.5 truncate">SKU: {{ item.sku }}</div>
                       }
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600 max-w-[120px]">
+                    <td class="px-4 py-3.5 text-sm text-gray-600 max-w-[120px]">
                       <span class="truncate block">{{ item.category }}</span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3.5">
                       <app-badge [variant]="item.classification === 'NEW' ? 'blue' : 'yellow'">
                         {{ item.classification === 'NEW' ? 'Brand New' : 'Pre-Owned' }}
                       </app-badge>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3.5">
                       <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold tabular-nums"
-                          [class.text-red-600]="item.stock === 0"
-                          [class.text-yellow-600]="item.stock > 0 && item.stock <= 5"
-                          [class.text-gray-900]="item.stock > 5">{{ item.stock }}</span>
-                        <div class="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <span class="text-sm font-bold tabular-nums"
+                          [class.text-danger-600]="item.stock === 0"
+                          [class.text-warning-600]="item.stock > 0 && item.stock <= 5"
+                          [class.text-ink]="item.stock > 5">{{ item.stock }}</span>
+                        <div class="w-10 h-1 bg-gray-100 rounded-full overflow-hidden">
                           <div class="h-full rounded-full transition-all"
-                            [class.bg-red-500]="item.stock === 0"
-                            [class.bg-yellow-400]="item.stock > 0 && item.stock <= 5"
-                            [class.bg-green-500]="item.stock > 5"
+                            [class.bg-danger-600]="item.stock === 0"
+                            [class.bg-warning-600]="item.stock > 0 && item.stock <= 5"
+                            [class.bg-success-600]="item.stock > 5"
                             [style.width]="stockBarWidth(item.stock) + '%'"></div>
                         </div>
                       </div>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600 tabular-nums whitespace-nowrap">
+                    <td class="px-4 py-3.5 text-sm text-gray-500 tabular-nums font-mono whitespace-nowrap">
                       {{ item.cost_price | number:'1.0-0' }}
                     </td>
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap">
+                    <td class="px-4 py-3.5 text-sm font-bold text-ink tabular-nums font-mono whitespace-nowrap">
                       {{ item.selling_price | number:'1.0-0' }}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3.5">
                       <div class="flex items-center gap-1">
                         <button type="button" (click)="openEditModal(item)"
-                          class="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                          class="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50
+                                 transition-colors duration-150 ease-sp"
                           aria-label="Edit item">
                           <lucide-icon [img]="PencilIcon" size="14" aria-hidden="true" />
                         </button>
                         <button type="button" (click)="deleteItem(item)"
-                          class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          class="p-1.5 rounded-lg text-gray-400 hover:text-danger-600 hover:bg-danger-50
+                                 transition-colors duration-150 ease-sp"
                           aria-label="Delete item">
                           <lucide-icon [img]="Trash2Icon" size="14" aria-hidden="true" />
                         </button>
@@ -291,10 +296,10 @@ type TabFilter = 'all' | 'NEW' | 'USED';
                   @for (opt of classificationOptions; track opt.value) {
                     <button type="button"
                       (click)="itemForm.controls.classification.setValue(opt.value)"
-                      class="flex-1 py-2 text-sm font-medium rounded-lg border transition-colors"
+                      class="flex-1 py-2 text-sm font-medium rounded-lg border transition-all duration-150 ease-sp"
                       [class]="itemForm.controls.classification.value === opt.value
-                        ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50 hover:text-gray-800'">
+                        ? 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-surface-raised hover:text-gray-800'">
                       {{ opt.label }}
                     </button>
                   }

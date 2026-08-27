@@ -104,10 +104,10 @@ function paymentLabel(method: string): string {
   @if (loading() && !stats()) {
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       @for (_ of [1,2,3,4]; track $index) {
-        <div class="card p-5 animate-pulse space-y-3">
-          <div class="w-10 h-10 rounded-xl bg-gray-100"></div>
-          <div class="h-6 bg-gray-100 rounded w-3/4"></div>
-          <div class="h-4 bg-gray-100 rounded w-1/2"></div>
+        <div class="card p-5 space-y-3">
+          <div class="w-10 h-10 rounded-xl skeleton"></div>
+          <div class="h-7 skeleton w-3/4"></div>
+          <div class="h-3.5 skeleton w-1/2"></div>
         </div>
       }
     </div>
@@ -291,22 +291,22 @@ function paymentLabel(method: string): string {
           <lucide-icon [img]="ActivityIcon" size="16" class="text-gray-300" aria-hidden="true" />
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-gray-50 rounded-xl p-3">
-            <p class="text-xs text-gray-500 mb-0.5">All-time Revenue</p>
-            <p class="text-base font-bold text-gray-900 tabular-nums">{{ fmt(s.totalSales) }}</p>
+          <div class="bg-surface-raised rounded-xl p-3">
+            <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">All-time Revenue</p>
+            <p class="text-base font-extrabold text-ink tabular-nums">{{ fmt(s.totalSales) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-xl p-3">
-            <p class="text-xs text-gray-500 mb-0.5">All-time Profit</p>
-            <p class="text-base font-bold text-gray-900 tabular-nums">{{ fmt(s.totalProfit) }}</p>
+          <div class="bg-surface-raised rounded-xl p-3">
+            <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">All-time Profit</p>
+            <p class="text-base font-extrabold text-ink tabular-nums">{{ fmt(s.totalProfit) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-xl p-3">
-            <p class="text-xs text-gray-500 mb-0.5">Total Customers</p>
-            <p class="text-base font-bold text-gray-900 tabular-nums">{{ s.totalCustomers }}</p>
-            <p class="text-xs text-gray-400">{{ s.repeatCustomers }} repeat</p>
+          <div class="bg-surface-raised rounded-xl p-3">
+            <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Total Customers</p>
+            <p class="text-base font-extrabold text-ink tabular-nums">{{ s.totalCustomers }}</p>
+            <p class="text-2xs text-gray-400 mt-0.5">{{ s.repeatCustomers }} repeat</p>
           </div>
-          <div class="bg-gray-50 rounded-xl p-3">
-            <p class="text-xs text-gray-500 mb-0.5">Total Orders</p>
-            <p class="text-base font-bold text-gray-900 tabular-nums">{{ s.totalOrders }}</p>
+          <div class="bg-surface-raised rounded-xl p-3">
+            <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Total Orders</p>
+            <p class="text-base font-extrabold text-ink tabular-nums">{{ s.totalOrders }}</p>
           </div>
         </div>
 
@@ -447,11 +447,11 @@ export class DashboardComponent implements OnInit {
   heatmapColor(h: HourlyData, all: HourlyData[]): string {
     const max = Math.max(...all.map(x => x.order_count), 1);
     const ratio = h.order_count / max;
-    if (ratio === 0)       return 'bg-gray-100';
-    if (ratio < 0.25)      return 'bg-blue-100';
-    if (ratio < 0.5)       return 'bg-blue-300';
-    if (ratio < 0.75)      return 'bg-blue-500';
-    return 'bg-blue-700';
+    if (ratio === 0)  return 'bg-surface-raised';
+    if (ratio < 0.25) return 'bg-primary-100';
+    if (ratio < 0.5)  return 'bg-primary-300';
+    if (ratio < 0.75) return 'bg-primary-500';
+    return 'bg-primary-700';
   }
 
   pmPct(pm: PaymentBreakdown, all: PaymentBreakdown[]): number {
@@ -466,8 +466,8 @@ export class DashboardComponent implements OnInit {
   }
 
   paymentBarColor(method: string): string {
-    if (method === 'CASH')        return 'bg-green-500';
-    if (method === 'CARD_KHATA')  return 'bg-blue-500';
+    if (method === 'CASH')        return 'bg-success-600';
+    if (method === 'CARD_KHATA')  return 'bg-primary-500';
     if (method === 'DIGITAL_PAY') return 'bg-violet-500';
     return 'bg-gray-400';
   }

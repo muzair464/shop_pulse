@@ -9,11 +9,11 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
   template: `
     @if (totalPages() > 1) {
       <div class="flex items-center justify-between px-1 py-3">
-        <p class="text-sm text-gray-500">
+        <p class="text-xs text-gray-500">
           Showing
-          <span class="font-medium text-gray-700">{{ rangeStart() }}–{{ rangeEnd() }}</span>
+          <span class="font-semibold text-ink">{{ rangeStart() }}–{{ rangeEnd() }}</span>
           of
-          <span class="font-medium text-gray-700">{{ totalItems() }}</span>
+          <span class="font-semibold text-ink">{{ totalItems() }}</span>
         </p>
 
         <div class="flex items-center gap-1">
@@ -22,27 +22,28 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
             (click)="prev()"
             [disabled]="currentPage() === 0"
             class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5
-                   text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40
-                   disabled:cursor-not-allowed transition-colors"
+                   text-sm text-gray-500 hover:bg-surface-raised hover:border-gray-300
+                   active:bg-gray-100 disabled:opacity-40
+                   disabled:cursor-not-allowed transition-all duration-150 ease-sp"
             aria-label="Previous page"
           >
             <lucide-icon [img]="ChevronLeftIcon" size="16" aria-hidden="true" />
           </button>
 
-          <!-- Page number buttons (show up to 5 around current) -->
           @for (page of visiblePages(); track page) {
             @if (page === -1) {
-              <span class="px-1 text-gray-400 text-sm">…</span>
+              <span class="px-1 text-gray-400 text-sm select-none">…</span>
             } @else {
               <button
                 type="button"
                 (click)="goTo(page)"
-                [class.bg-primary-600]="page === currentPage()"
+                [class.bg-primary-500]="page === currentPage()"
                 [class.text-white]="page === currentPage()"
-                [class.border-primary-600]="page === currentPage()"
+                [class.border-primary-500]="page === currentPage()"
+                [class.shadow-sm]="page === currentPage()"
                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg border
                        border-gray-200 bg-white text-sm text-gray-600
-                       hover:bg-gray-50 transition-colors"
+                       hover:bg-surface-raised transition-all duration-150 ease-sp"
                 [attr.aria-label]="'Page ' + (page + 1)"
                 [attr.aria-current]="page === currentPage() ? 'page' : null"
               >
@@ -56,8 +57,9 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
             (click)="next()"
             [disabled]="currentPage() === totalPages() - 1"
             class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5
-                   text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40
-                   disabled:cursor-not-allowed transition-colors"
+                   text-sm text-gray-500 hover:bg-surface-raised hover:border-gray-300
+                   active:bg-gray-100 disabled:opacity-40
+                   disabled:cursor-not-allowed transition-all duration-150 ease-sp"
             aria-label="Next page"
           >
             <lucide-icon [img]="ChevronRightIcon" size="16" aria-hidden="true" />

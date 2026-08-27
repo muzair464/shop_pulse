@@ -10,7 +10,7 @@ import { RouterOutlet } from '@angular/router';
   standalone: true,
   imports: [RouterOutlet],
   template: `
-    <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+    <div class="min-h-screen bg-surface flex items-center justify-center px-4 py-12">
       <router-outlet />
     </div>
   `,

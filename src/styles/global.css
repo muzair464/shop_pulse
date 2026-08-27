@@ -1,3 +1,7 @@
+/* ─── Google Fonts: Inter ────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
 /* ─── Tailwind base layers ───────────────────────────────────── */
 @tailwind base;
 @tailwind components;
@@ -12,6 +16,8 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #F8F9FC;
+    color: #1A1A2E;
   }
 
   /* Mono-spaced numeric fields (prices, quantities, order numbers) */
@@ -19,65 +25,109 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
+
+  /* Ensure Inter numerals are tabular where it matters */
+  input[type="number"],
+  .font-mono,
+  [class*="tabular"] {
+    font-feature-settings: "tnum", "ss01";
+  }
 }
 
 /* ─── Component utilities ────────────────────────────────────── */
 @layer components {
-  /* Standard card used throughout the app */
+
+  /* ── Card ──────────────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-card;
+    @apply bg-white rounded-xl border border-gray-200/80 shadow-card;
+  }
+  .card-raised {
+    @apply bg-white rounded-xl border border-gray-200/60 shadow-raised;
   }
 
-  /* Reusable form input style */
+  /* ── Form input ────────────────────────────────────────────── */
   .form-input {
     @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-           text-gray-900 placeholder-gray-400
+           font-sans text-ink placeholder-gray-400
+           bg-white
+           transition-[border-color,box-shadow] duration-150 ease-sp
            focus:border-primary-500 focus:outline-none focus:ring-2
            focus:ring-primary-500/20
-           disabled:bg-gray-50 disabled:text-gray-400;
+           disabled:bg-surface-raised disabled:text-gray-400 disabled:cursor-not-allowed;
   }
 
-  /* Primary action button */
+  /* ── Primary button ────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2
-           text-sm font-semibold text-white shadow-sm
-           hover:bg-primary-700 active:bg-primary-800
-           focus:outline-none focus:ring-2 focus:ring-primary-500/50
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150;
+    @apply inline-flex items-center gap-2 rounded-xl
+           bg-primary-500 px-4 py-2
+           text-sm font-semibold text-white
+           shadow-sm
+           transition-all duration-150 ease-sp
+           hover:bg-primary-600 hover:shadow-raised
+           active:bg-primary-700 active:scale-[0.97]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:active:scale-100;
   }
 
-  /* Secondary / outline button */
+  /* ── Secondary / outline button ────────────────────────────── */
   .btn-secondary {
-    @apply inline-flex items-center gap-2 rounded-lg border border-gray-300
-           bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm
-           hover:bg-gray-50 active:bg-gray-100
-           focus:outline-none focus:ring-2 focus:ring-primary-500/30
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150;
+    @apply inline-flex items-center gap-2 rounded-xl border border-gray-300
+           bg-white px-4 py-2 text-sm font-semibold text-gray-700
+           shadow-sm
+           transition-all duration-150 ease-sp
+           hover:bg-gray-50 hover:border-gray-400
+           active:bg-gray-100 active:scale-[0.97]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-1
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
-  /* Danger button */
+  /* ── Danger button ─────────────────────────────────────────── */
   .btn-danger {
-    @apply inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2
+    @apply inline-flex items-center gap-2 rounded-xl bg-danger-600 px-4 py-2
            text-sm font-semibold text-white shadow-sm
-           hover:bg-red-700 active:bg-red-800
-           focus:outline-none focus:ring-2 focus:ring-red-500/50
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150;
+           transition-all duration-150 ease-sp
+           hover:bg-danger-700 hover:shadow-raised
+           active:bg-danger-700 active:scale-[0.97]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-600/50 focus-visible:ring-offset-1
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* Badge variants */
+  /* ── Badges ────────────────────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+           tracking-wide;
   }
-  .badge-green  { @apply badge bg-green-100 text-green-800; }
-  .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
-  .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
-  .badge-red    { @apply badge bg-red-100 text-red-800; }
-  .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
+  .badge-green  { @apply badge bg-success-50  text-success-700; }
+  .badge-blue   { @apply badge bg-primary-50  text-primary-700; }
+  .badge-yellow { @apply badge bg-warning-50  text-warning-700; }
+  .badge-red    { @apply badge bg-danger-50   text-danger-700; }
+  .badge-gray   { @apply badge bg-gray-100    text-gray-600; }
 
-  /* ── Text-overflow helpers ── */
+  /* ── Skeleton loader ───────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #f1f3f9 25%,
+      #e8ecf5 37%,
+      #f1f3f9 63%
+    );
+    background-size: 800px 100%;
+    @apply animate-shimmer rounded;
+  }
+
+  /* ── Khata ledger row ──────────────────────────────────────── */
+  /* Applied to transaction rows in the Khata drawer */
+  .ledger-row {
+    @apply flex items-start gap-3 px-5 py-3.5 border-b border-ledger-rule last:border-0;
+  }
+  .ledger-row-credit {
+    @apply bg-ledger-credit-bg/40;
+  }
+  .ledger-row-debit {
+    @apply bg-ledger-debit-bg/40;
+  }
+
+  /* ── Text helpers ──────────────────────────────────────────── */
   .text-truncate {
     @apply overflow-hidden text-ellipsis whitespace-nowrap;
   }
@@ -89,6 +139,23 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ── Realtime row pulse ────────────────────────────────────── */
+  .row-updated {
+    @apply animate-row-pulse;
+  }
+}
+
+/* ─── Reduced motion: all transitions/animations disabled ───── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -191,10 +258,6 @@
     margin-bottom: 2px;
     padding-left: 4px;
   }
-
-  /* ── Discount row (green not available — use normal) ── */
-  .print-receipt .rct-discount span:last-child::before { content: '-'; }
-  .print-receipt .rct-discount span:last-child::before { content: ''; } /* reset */
 
   /* ── Grand total row ── */
   .print-receipt .rct-total {

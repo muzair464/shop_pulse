@@ -59,8 +59,8 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
               class="px-2.5 py-1 text-xs font-medium rounded-lg border whitespace-nowrap
                      transition-colors shrink-0"
               [class]="activeCategory() === cat
-                ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'">
+                ? 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-surface-raised hover:text-gray-800'">
               {{ cat }}
             </button>
           }
@@ -81,9 +81,9 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
             [disabled]="item.stock === 0"
             class="flex flex-col p-2.5 rounded-xl border-2 bg-white text-left transition-all
                    hover:border-primary-400 hover:shadow-sm
-                   disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-            [class.border-blue-500]="focusedIdx() === i"
-            [class.shadow-md]="focusedIdx() === i"
+                   disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]"
+            [class.border-primary-500]="focusedIdx() === i"
+            [class.shadow-raised]="focusedIdx() === i"
             [class.border-gray-200]="focusedIdx() !== i"
             [attr.aria-label]="'Add ' + item.name + ' to cart'"
             role="option"
@@ -110,7 +110,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
               <p class="text-[10px] text-gray-400 line-clamp-1 mb-0.5">{{ item.description }}</p>
             }
             <p class="text-[10px] text-gray-400 truncate mb-1.5">{{ item.category }}</p>
-            <p class="mt-auto text-sm font-bold text-primary-700 tabular-nums">
+            <p class="mt-auto text-sm font-bold text-primary-500 tabular-nums">
               {{ item.selling_price | number:'1.0-0' }}
             </p>
           </button>
@@ -130,7 +130,7 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
         <lucide-icon [img]="CartIcon" size="15" class="text-gray-500 shrink-0" aria-hidden="true" />
         <h2 class="font-semibold text-gray-800 text-sm">Cart</h2>
         @if (cart().length > 0) {
-          <span class="ml-1 text-xs bg-primary-100 text-primary-700 font-bold
+          <span class="ml-1 text-xs bg-primary-100 text-primary-600 font-bold
                         rounded-full px-1.5 py-0.5 leading-none">
             {{ cart().length }}
           </span>
@@ -361,8 +361,8 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
                 class="flex-1 py-1.5 text-[10px] font-semibold rounded-lg border
                        transition-colors"
                 [class]="paymentMethod() === pm.value
-                  ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'"
+                  ? 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-surface-raised hover:text-gray-800'"
                 [attr.aria-pressed]="paymentMethod() === pm.value">
                 {{ pm.label }}
               </button>
@@ -384,11 +384,18 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
         <!-- Complete sale -->
         <div class="px-3 pb-3 shrink-0">
           <button type="button" (click)="completeSale()" [disabled]="checkoutLoading()"
-            class="btn-primary w-full justify-center py-2.5 text-sm"
+            class="w-full justify-center py-3 text-sm font-bold
+                   inline-flex items-center gap-2 rounded-xl
+                   bg-primary-500 text-white
+                   transition-all duration-150 ease-sp
+                   hover:bg-primary-600 hover:shadow-raised
+                   active:bg-primary-700 active:scale-[0.98]
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60
+                   disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             [attr.aria-busy]="checkoutLoading()">
             @if (checkoutLoading()) {
               <lucide-icon [img]="Loader2Icon" size="16" class="animate-spin" aria-hidden="true" />
-              Processingâ€¦
+              Processing…
             } @else {
               <lucide-icon [img]="PrinterIcon" size="16" aria-hidden="true" />
               Complete &amp; Print
@@ -401,9 +408,9 @@ interface KhataCustomer { id: string; name: string; phone: string | null; balanc
 
   <!-- â”€â”€ Mobile cart toggle FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <button type="button"
-    class="lg:hidden fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-lg
-           bg-primary-600 text-white flex items-center justify-center
-           active:scale-95 transition-all"
+    class="lg:hidden fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-float
+           bg-primary-500 text-white flex items-center justify-center
+           active:scale-95 transition-all duration-150 ease-sp"
     (click)="cartExpanded.set(!cartExpanded())"
     [attr.aria-label]="cartExpanded() ? 'Show products' : 'Show cart'">
     @if (cartExpanded()) {

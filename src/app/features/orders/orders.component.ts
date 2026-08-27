@@ -55,24 +55,24 @@ interface OrderDetail extends OrderRow {
       <!-- Orders-specific stats -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Today's Orders</p>
-          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ ordersStore.todaysOrderCount() }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Today's Orders</p>
+          <p class="text-xl font-extrabold text-ink tabular-nums">{{ ordersStore.todaysOrderCount() }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Today's Revenue</p>
-          <p class="text-xl font-bold text-primary-700 tabular-nums">{{ ordersStore.todaysRevenue() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Today's Revenue</p>
+          <p class="text-xl font-extrabold text-primary-500 tabular-nums">{{ ordersStore.todaysRevenue() | number:'1.0-0' }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Total Revenue</p>
-          <p class="text-xl font-bold text-green-600 tabular-nums">{{ ordersStore.totalRevenue() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Total Revenue</p>
+          <p class="text-xl font-extrabold text-success-600 tabular-nums">{{ ordersStore.totalRevenue() | number:'1.0-0' }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Avg. Order</p>
-          <p class="text-xl font-bold text-gray-900 tabular-nums">{{ ordersStore.avgOrderValue() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Avg. Order</p>
+          <p class="text-xl font-extrabold text-ink tabular-nums">{{ ordersStore.avgOrderValue() | number:'1.0-0' }}</p>
         </div>
         <div class="card p-3 text-center">
-          <p class="text-xs text-gray-500 mb-0.5">Total Discounts</p>
-          <p class="text-xl font-bold text-yellow-600 tabular-nums">{{ ordersStore.totalDiscount() | number:'1.0-0' }}</p>
+          <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Total Discounts</p>
+          <p class="text-xl font-extrabold text-warning-600 tabular-nums">{{ ordersStore.totalDiscount() | number:'1.0-0' }}</p>
         </div>
       </div>
 

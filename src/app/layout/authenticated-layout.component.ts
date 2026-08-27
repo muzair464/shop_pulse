@@ -31,7 +31,7 @@ import { BackupService } from '../core/backup.service';
   standalone: true,
   imports: [RouterOutlet, TopNavComponent, ToastContainerComponent],
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-surface">
       <app-top-nav />
       <main
         class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pb-20 md:pb-8"

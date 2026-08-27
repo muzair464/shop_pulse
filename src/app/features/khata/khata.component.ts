@@ -85,40 +85,40 @@ function fmtPkr(n: number): string {
   <!-- ── KPI cards ─────────────────────────────────────────────── -->
   @if (kpi()) {
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-5 hover:shadow-md transition-shadow">
-        <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
-          <lucide-icon [img]="UsersIcon" size="16" class="text-blue-600" aria-hidden="true"/>
+      <div class="card p-5 hover:shadow-raised transition-shadow duration-200 ease-sp">
+        <div class="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center mb-3">
+          <lucide-icon [img]="UsersIcon" size="16" class="text-primary-500" aria-hidden="true"/>
         </div>
-        <p class="text-2xl font-bold text-gray-900 tabular-nums">{{ kpi()!.total_customers }}</p>
-        <p class="text-xs font-medium text-gray-500 mt-0.5">Active Accounts</p>
+        <p class="text-2xl font-extrabold text-ink tabular-nums">{{ kpi()!.total_customers }}</p>
+        <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mt-0.5">Active Accounts</p>
       </div>
-      <div class="card p-5 hover:shadow-md transition-shadow">
-        <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center mb-3">
-          <lucide-icon [img]="AlertTriangleIcon" size="16" class="text-red-500" aria-hidden="true"/>
+      <div class="card p-5 hover:shadow-raised transition-shadow duration-200 ease-sp">
+        <div class="w-9 h-9 rounded-xl bg-danger-50 flex items-center justify-center mb-3">
+          <lucide-icon [img]="AlertTriangleIcon" size="16" class="text-danger-600" aria-hidden="true"/>
         </div>
-        <p class="text-2xl font-bold text-red-600 tabular-nums">
+        <p class="text-2xl font-extrabold text-danger-600 tabular-nums font-mono">
           {{ fmtPkr(kpi()!.total_outstanding) }}
         </p>
-        <p class="text-xs font-medium text-gray-500 mt-0.5">Total Outstanding</p>
-        <p class="text-[10px] text-gray-400 mt-0.5">{{ kpi()!.overdue_count }} accounts overdue</p>
+        <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mt-0.5">Total Outstanding</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ kpi()!.overdue_count }} overdue</p>
       </div>
-      <div class="card p-5 hover:shadow-md transition-shadow">
-        <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center mb-3">
-          <lucide-icon [img]="CheckCircleIcon" size="16" class="text-green-600" aria-hidden="true"/>
+      <div class="card p-5 hover:shadow-raised transition-shadow duration-200 ease-sp">
+        <div class="w-9 h-9 rounded-xl bg-success-50 flex items-center justify-center mb-3">
+          <lucide-icon [img]="CheckCircleIcon" size="16" class="text-success-600" aria-hidden="true"/>
         </div>
-        <p class="text-2xl font-bold text-gray-900 tabular-nums">
+        <p class="text-2xl font-extrabold text-ink tabular-nums">
           {{ kpi()!.total_customers - kpi()!.overdue_count }}
         </p>
-        <p class="text-xs font-medium text-gray-500 mt-0.5">Settled Accounts</p>
+        <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mt-0.5">Settled Accounts</p>
       </div>
-      <div class="card p-5 hover:shadow-md transition-shadow">
+      <div class="card p-5 hover:shadow-raised transition-shadow duration-200 ease-sp">
         <div class="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center mb-3">
           <lucide-icon [img]="CircleDollarSignIcon" size="16" class="text-violet-600" aria-hidden="true"/>
         </div>
-        <p class="text-2xl font-bold text-gray-900 tabular-nums">
+        <p class="text-2xl font-extrabold text-ink tabular-nums font-mono">
           {{ kpi()!.overdue_count > 0 ? fmtPkr(kpi()!.total_outstanding / kpi()!.overdue_count) : 'PKR 0' }}
         </p>
-        <p class="text-xs font-medium text-gray-500 mt-0.5">Avg Outstanding</p>
+        <p class="text-2xs font-semibold text-gray-500 uppercase tracking-wide mt-0.5">Avg Outstanding</p>
       </div>
     </div>
   }
@@ -215,18 +215,20 @@ function fmtPkr(n: number): string {
                   </div>
                 </td>
                 <td class="px-4 py-3.5 text-right">
-                  <span class="font-bold tabular-nums text-sm"
-                    [class.text-red-600]="c.balance > 0"
-                    [class.text-gray-700]="c.balance <= 0">
+                  <span class="font-bold tabular-nums text-sm font-mono"
+                    [class.text-ledger-debit]="c.balance > 0"
+                    [class.text-gray-600]="c.balance <= 0">
                     {{ fmtPkr(c.balance) }}
                   </span>
                 </td>
                 <td class="px-4 py-3.5 text-xs text-gray-400 hidden lg:table-cell">
-                  {{ c.last_tx_at ? (c.last_tx_at | date:'dd MMM yyyy') : '-' }}
+                  {{ c.last_tx_at ? (c.last_tx_at | date:'dd MMM yyyy') : '—' }}
                 </td>
                 <td class="px-4 py-3.5 text-center">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
-                    [class]="c.balance > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide"
+                    [class]="c.balance > 0
+                      ? 'bg-danger-50 text-danger-700'
+                      : 'bg-success-50 text-success-700'">
                     {{ c.balance > 0 ? 'Overdue' : 'Settled' }}
                   </span>
                 </td>
@@ -355,55 +357,85 @@ function fmtPkr(n: number): string {
         </button>
       </div>
 
-      <!-- Transaction list -->
+      <!-- Transaction list — rendered as a traditional ledger page -->
       <div class="flex-1 overflow-y-auto">
         @if (detailLoading()) {
           <div class="py-12 flex justify-center">
             <lucide-icon [img]="Loader2Icon" size="28" class="animate-spin text-gray-200" aria-hidden="true"/>
           </div>
         } @else if (!filteredTransactions().length) {
-          <div class="py-14 text-center text-sm text-gray-400">
-            @if (txSearchQuery.trim()) {
-              No transactions match "{{ txSearchQuery }}"
-            } @else {
-              No transactions yet.
-            }
+          <div class="py-14 text-center">
+            <lucide-icon [img]="FileTextIcon" size="28" class="mx-auto mb-2 text-gray-200" aria-hidden="true"/>
+            <p class="text-sm text-gray-400">
+              @if (txSearchQuery.trim()) {
+                No transactions match "{{ txSearchQuery }}"
+              } @else {
+                No transactions yet. Record one above.
+              }
+            </p>
           </div>
         } @else {
-          <ul class="divide-y divide-gray-100">
+          <!-- Ledger header row — mimics the column header of a paper ledger -->
+          <div class="flex items-center px-5 py-2 bg-surface-raised border-b border-ledger-rule
+                      text-2xs font-semibold text-gray-400 uppercase tracking-wider">
+            <span class="w-8 shrink-0"></span>
+            <span class="flex-1">Entry</span>
+            <span class="w-28 text-right">Amount</span>
+          </div>
+          <ul>
             @for (tx of filteredTransactions(); track tx.id) {
-              <li class="flex items-start gap-3 px-5 py-4" [class.opacity-40]="tx.voided_at">
+              <li class="ledger-row"
+                  [class.ledger-row-debit]="tx.tx_type === 'CREDIT' && !tx.voided_at"
+                  [class.ledger-row-credit]="tx.tx_type === 'REPAYMENT' && !tx.voided_at"
+                  [class.opacity-40]="tx.voided_at">
+
+                <!-- Type icon -->
                 <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                  [class]="tx.tx_type === 'CREDIT' ? 'bg-red-100' : 'bg-green-100'">
+                  [class]="tx.tx_type === 'CREDIT'
+                    ? 'bg-ledger-debit-bg border border-ledger-debit/20'
+                    : 'bg-ledger-credit-bg border border-ledger-credit/20'">
                   <lucide-icon
                     [img]="tx.tx_type === 'CREDIT' ? ArrowUpRightIcon : ArrowDownLeftIcon"
-                    size="14"
-                    [class]="tx.tx_type === 'CREDIT' ? 'text-red-600' : 'text-green-600'"
+                    size="13"
+                    [class]="tx.tx_type === 'CREDIT' ? 'text-ledger-debit' : 'text-ledger-credit'"
                     aria-hidden="true"/>
                 </div>
+
+                <!-- Entry details -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-baseline justify-between gap-2">
-                    <span class="text-sm font-bold tabular-nums"
-                      [class.text-red-600]="tx.tx_type === 'CREDIT'"
-                      [class.text-green-700]="tx.tx_type === 'REPAYMENT'">
-                      {{ tx.tx_type === 'CREDIT' ? '+' : '-' }}{{ fmtPkr(tx.amount) }}
-                    </span>
-                    <span class="text-xs text-gray-400 shrink-0">
-                      {{ tx.created_at | date:'dd MMM, h:mm a' }}
+                    <!-- Left: label + date -->
+                    <div class="min-w-0">
+                      <span class="text-xs font-semibold"
+                        [class.text-ledger-debit]="tx.tx_type === 'CREDIT'"
+                        [class.text-ledger-credit]="tx.tx_type === 'REPAYMENT'">
+                        {{ tx.tx_type === 'CREDIT' ? 'Credit given' : 'Repayment received' }}
+                      </span>
+                      @if (tx.order_number) {
+                        <span class="text-2xs text-gray-400 ml-1.5 font-mono">{{ tx.order_number }}</span>
+                      }
+                      @if (tx.voided_at) {
+                        <span class="text-2xs text-gray-400 ml-1">(voided)</span>
+                      }
+                      @if (tx.notes) {
+                        <p class="text-2xs text-gray-400 mt-0.5 italic truncate">{{ tx.notes }}</p>
+                      }
+                    </div>
+                    <!-- Right: amount in ledger-style mono font -->
+                    <span class="font-mono text-sm font-bold tabular-nums shrink-0"
+                      [class.text-ledger-debit]="tx.tx_type === 'CREDIT'"
+                      [class.text-ledger-credit]="tx.tx_type === 'REPAYMENT'">
+                      {{ tx.tx_type === 'CREDIT' ? '+' : '−' }}{{ fmtPkr(tx.amount) }}
                     </span>
                   </div>
-                  <p class="text-xs text-gray-500 mt-0.5">
-                    {{ tx.tx_type === 'CREDIT' ? 'Credit given' : 'Repayment received' }}
-                    @if (tx.order_number) { - Order {{ tx.order_number }} }
-                    @if (tx.voided_at) { <span class="text-gray-400">(voided)</span> }
+                  <p class="text-2xs text-gray-400 mt-0.5">
+                    {{ tx.created_at | date:'dd MMM yyyy, h:mm a' }}
                   </p>
-                  @if (tx.notes) {
-                    <p class="text-xs text-gray-400 mt-0.5 italic">{{ tx.notes }}</p>
-                  }
                 </div>
+
                 @if (!tx.voided_at) {
                   <button type="button" (click)="voidTx(tx)"
-                    class="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0"
+                    class="p-1 text-gray-300 hover:text-danger-500 transition-colors duration-150 ease-sp shrink-0"
                     aria-label="Void transaction">
                     <lucide-icon [img]="Trash2Icon" size="12" aria-hidden="true"/>
                   </button>
@@ -497,18 +529,18 @@ function fmtPkr(n: number): string {
             <div class="grid grid-cols-2 gap-2">
               <button type="button" (click)="txType.set('CREDIT')"
                 class="flex items-center justify-center gap-2 py-3 rounded-xl border-2
-                       text-sm font-semibold transition-all"
+                       text-sm font-semibold transition-all duration-150 ease-sp"
                 [class]="txType() === 'CREDIT'
-                  ? 'border-red-400 bg-red-50 text-red-700'
+                  ? 'border-ledger-debit bg-ledger-debit-bg text-ledger-debit'
                   : 'border-gray-200 text-gray-500 hover:border-gray-300'">
                 <lucide-icon [img]="ArrowUpRightIcon" size="15" aria-hidden="true"/>
                 Credit Given
               </button>
               <button type="button" (click)="txType.set('REPAYMENT')"
                 class="flex items-center justify-center gap-2 py-3 rounded-xl border-2
-                       text-sm font-semibold transition-all"
+                       text-sm font-semibold transition-all duration-150 ease-sp"
                 [class]="txType() === 'REPAYMENT'
-                  ? 'border-green-400 bg-green-50 text-green-700'
+                  ? 'border-ledger-credit bg-ledger-credit-bg text-ledger-credit'
                   : 'border-gray-200 text-gray-500 hover:border-gray-300'">
                 <lucide-icon [img]="ArrowDownLeftIcon" size="15" aria-hidden="true"/>
                 Repayment

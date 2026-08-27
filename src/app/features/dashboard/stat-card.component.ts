@@ -10,7 +10,7 @@ type LucideIconData = any;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LucideAngularModule],
   template: `
-    <div class="card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow duration-200">
+    <div class="card p-5 flex flex-col gap-3 hover:shadow-raised transition-shadow duration-200 ease-sp">
       <!-- Top row: icon + trend badge -->
       <div class="flex items-start justify-between">
         <div
@@ -34,11 +34,11 @@ type LucideIconData = any;
       </div>
 
       <!-- Value + label -->
-      <div class="min-w-0">
-        <p class="text-2xl font-bold text-gray-900 tabular-nums leading-tight truncate">
+      <div class="min-w-0 animate-count-in">
+        <p class="text-2xl font-extrabold text-ink tabular-nums leading-tight truncate tracking-tight">
           {{ value() }}
         </p>
-        <p class="mt-0.5 text-sm font-medium text-gray-500 truncate">{{ label() }}</p>
+        <p class="mt-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide truncate">{{ label() }}</p>
         @if (subtext()) {
           <p class="mt-1 text-xs text-gray-400 truncate">{{ subtext() }}</p>
         }
