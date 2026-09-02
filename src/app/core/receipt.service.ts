@@ -90,7 +90,9 @@ export class ReceiptService {
     html += '<div class="rct-divider"></div>';
 
     // Footer
-    html += d('rct-footer', 'Thank you for your purchase!');
+    // Use custom footer message from shop settings, or default message
+    const footerMessage = shop?.receiptFooterMessage || 'Thank you for your purchase!';
+    html += d('rct-footer', footerMessage);
     html += d('rct-footer rct-footer-brand', 'Powered by ShopPulse');
 
     // Inject into static container — bypasses Angular change detection entirely
