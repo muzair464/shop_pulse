@@ -36,6 +36,8 @@ export class ReceiptService {
 
   print(order: ReceiptOrder): void {
     const shop = this.shopStore.shop();
+    console.log('[Receipt] Shop data:', shop); // Debug log
+    console.log('[Receipt] Footer message:', shop?.receiptFooterMessage); // Debug log
     const fmt  = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
     const date = new Date(order.created_at);
     const d = (cls: string, inner: string) => `<div class="${cls}">${inner}</div>`;
