@@ -46,12 +46,8 @@ export class ReceiptService {
 
     let html = '';
 
-    // Branding
-    html += d('rct-brand', 'ShopPulse');
-    html += '<div class="rct-divider"></div>';
-
     // Shop info
-    html += d('rct-shop-name', shop?.shopName ?? '');
+    html += d('rct-brand', shop?.shopName ?? '');
     if (shop?.phone)   html += d('rct-line', `Tel: ${shop.phone}`);
     if (shop?.address) html += d('rct-line', shop.address);
     html += '<div class="rct-divider"></div>';
@@ -95,7 +91,6 @@ export class ReceiptService {
     // Use custom footer message from shop settings, or default message
     const footerMessage = shop?.receiptFooterMessage || 'Thank you for your purchase!';
     html += d('rct-footer', footerMessage);
-    html += d('rct-footer rct-footer-brand', 'Powered by ShopPulse');
 
     // Inject into static container — bypasses Angular change detection entirely
     let container = document.getElementById('sp-receipt-container');
