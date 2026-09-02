@@ -20,13 +20,9 @@ import { ShopStore } from '../core/shop.store';
 
           <!-- Brand -->
           <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center shrink-0 shadow-sm">
-              <lucide-icon [img]="ZapIcon" size="16" class="text-white" aria-hidden="true" />
-            </div>
-            <span class="text-[15px] font-bold text-ink tracking-tight truncate">ShopPulse</span>
             @if (shopName()) {
-              <span class="hidden sm:inline text-xs text-gray-400 font-normal ml-1 truncate max-w-[120px]">
-                · {{ shopName() }}
+              <span class="text-[15px] font-semibold text-ink tracking-tight truncate">
+                {{ shopName() }}
               </span>
             }
           </div>
