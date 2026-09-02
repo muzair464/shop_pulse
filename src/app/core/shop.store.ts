@@ -15,6 +15,7 @@ export interface ShopProfile {
   paymentQrDataUri:    string | null;
   autoExportFrequency: string;
   autoPrintReceipt:    boolean;
+  receiptFooterMessage: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

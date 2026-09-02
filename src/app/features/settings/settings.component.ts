@@ -47,6 +47,17 @@ import { BackupService } from '../../core/backup.service';
               <input id="shop-addr" type="text" formControlName="address" class="form-input" placeholder="Shop address" />
             </div>
           </div>
+          <div>
+            <label for="receipt-footer" class="block text-sm font-medium text-gray-700 mb-1.5">Receipt Footer Message</label>
+            <textarea
+              id="receipt-footer"
+              formControlName="receiptFooterMessage"
+              rows="2"
+              class="form-input"
+              placeholder="Thank you for shopping with us!"
+            ></textarea>
+            <p class="mt-1 text-xs text-gray-400">This message will appear at the bottom of printed receipts.</p>
+          </div>
           <div class="flex justify-end gap-2">
             <button type="button" (click)="resetProfile()" class="btn-secondary">Discard</button>
             <button type="submit" class="btn-primary" [disabled]="profileSaving()">
@@ -247,9 +258,10 @@ export class SettingsComponent implements OnInit {
   toggleShowNewPass(): void { this.showNewPass.update(v => !v); }
 
   readonly profileForm = this.fb.nonNullable.group({
-    shopName: ['', Validators.required],
-    phone:    [''],
-    address:  [''],
+    shopName:             ['', Validators.required],
+    phone:                [''],
+    address:              [''],
+    receiptFooterMessage: [''],
   });
 
   readonly passwordForm = this.fb.nonNullable.group({
@@ -270,9 +282,10 @@ export class SettingsComponent implements OnInit {
     const shop = this.shopStore.shop();
     if (!shop) return;
     this.profileForm.patchValue({
-      shopName: shop.shopName,
-      phone:    shop.phone    ?? '',
-      address:  shop.address  ?? '',
+      shopName:             shop.shopName,
+      phone:                shop.phone    ?? '',
+      address:              shop.address  ?? '',
+      receiptFooterMessage: shop.receiptFooterMessage ?? '',
     });
     this.qrPreviewUrl.set(shop.paymentQrDataUri);
     this.autoExportFrequency.set(shop.autoExportFrequency);
@@ -283,7 +296,10 @@ export class SettingsComponent implements OnInit {
     const shop = this.shopStore.shop();
     if (shop) {
       this.profileForm.patchValue({
-        shopName: shop.shopName, phone: shop.phone ?? '', address: shop.address ?? '',
+        shopName:             shop.shopName,
+        phone:                shop.phone ?? '',
+        address:              shop.address ?? '',
+        receiptFooterMessage: shop.receiptFooterMessage ?? '',
       });
     }
   }
@@ -294,9 +310,17 @@ export class SettingsComponent implements OnInit {
     try {
       const val = this.profileForm.getRawValue();
       await this.api.patch('/api/v1/settings', {
-        shopName: val.shopName, phone: val.phone || null, address: val.address || null,
+        shopName:             val.shopName,
+        phone:                val.phone || null,
+        address:              val.address || null,
+        receiptFooterMessage: val.receiptFooterMessage || null,
       });
-      this.shopStore.patch({ shopName: val.shopName, phone: val.phone || null, address: val.address || null });
+      this.shopStore.patch({
+        shopName:             val.shopName,
+        phone:                val.phone || null,
+        address:              val.address || null,
+        receiptFooterMessage: val.receiptFooterMessage || null,
+      });
       this.toast.success('Profile saved.');
     } catch { this.toast.error('Failed to save profile.'); }
     finally { this.profileSaving.set(false); }
