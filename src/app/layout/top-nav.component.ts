@@ -19,17 +19,12 @@ import { ShopStore } from '../core/shop.store';
         <div class="flex h-14 items-center justify-between">
 
           <!-- Brand -->
-          <a [routerLink]="'/dashboard'" class="flex items-center gap-2.5 min-w-0 group">
+          <a [routerLink]="'/dashboard'" class="flex items-center min-w-0 group">
             @if (shopName()) {
-              <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 
-                          shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
-                <div class="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center shrink-0 backdrop-blur-sm">
-                  <lucide-icon [img]="ZapIcon" size="14" class="text-white" aria-hidden="true" />
-                </div>
-                <span class="text-[15px] font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-[200px]">
-                  {{ shopName() }}
-                </span>
-              </div>
+              <span class="text-lg font-bold text-ink tracking-tight truncate 
+                           hover:text-primary-600 transition-colors duration-200">
+                {{ shopName() }}
+              </span>
             }
           </a>
 
