@@ -34,20 +34,65 @@ export class InventoryStore {
   );
 
   /**
-   * Fetch all inventory from the server and populate the signal.
+   * Fetch ALL inventory from the server, paginating through every page.
+   *
+   * Strategy:
+   *  1. Request page 1 first — the response now includes `total` so we know
+   *     upfront how many rows to expect.
+   *  2. Keep fetching page 2, 3 … until accumulated items >= total, or until
+   *     a page returns fewer than PAGE_SIZE items (signals the last page).
+   *  3. Hard cap at MAX_PAGES (50) to prevent infinite loops.
+   *  4. On any mid-loop error: preserve already-fetched rows in the store and
+   *     surface a descriptive message via `_error`.
+   *
    * @param _shopId  Kept for call-site compatibility — RLS on the backend handles scoping.
    */
   async load(_shopId: string): Promise<void> {
+    const PAGE_SIZE = 500; // must match server PAGE_SIZE
+    const MAX_PAGES = 50;
+
     this._loading.set(true);
     this._error.set(null);
+
+    const accumulated: InventoryItemRow[] = [];
+    let total: number | null = null;
+
     try {
-      const response = await this.api.get<{ items: InventoryItemRow[]; syncedAt: string }>(
-        '/api/v1/inventory',
-      );
-      this._items.set(response.items);
-    } catch (err) {
-      this._error.set(err instanceof Error ? err.message : 'Failed to load inventory.');
+      for (let page = 1; page <= MAX_PAGES; page++) {
+        let response: { items: InventoryItemRow[]; total: number; syncedAt: string };
+        try {
+          response = await this.api.get<{ items: InventoryItemRow[]; total: number; syncedAt: string }>(
+            `/api/v1/inventory?page=${page}`,
+          );
+        } catch (err) {
+          // Partial failure: keep what we already have, surface the error.
+          const msg = err instanceof Error ? err.message : 'Failed to load inventory.';
+          this._error.set(
+            accumulated.length > 0
+              ? `Loaded ${accumulated.length} of ${total ?? '?'} items. Stopped on page ${page}: ${msg}`
+              : msg,
+          );
+          break; // exit loop; accumulated items (if any) are set below
+        }
+
+        accumulated.push(...response.items);
+
+        // Capture total from the first page so we can use it every iteration.
+        if (total === null) {
+          total = response.total;
+        }
+
+        // Stop conditions:
+        // (a) We have at least as many rows as the server says exist.
+        if (total !== null && accumulated.length >= total) break;
+        // (b) This page was smaller than PAGE_SIZE — it was the last page.
+        if (response.items.length < PAGE_SIZE) break;
+      }
     } finally {
+      // Always commit whatever we managed to fetch before setting loading=false.
+      if (accumulated.length > 0) {
+        this._items.set(accumulated);
+      }
       this._loading.set(false);
     }
   }
