@@ -2,11 +2,13 @@ import {
   Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   LucideAngularModule,
   ShieldCheck, XCircle, Clock, CheckCircle2, RefreshCw,
   Building, Smartphone, Eye, DollarSign, Loader2,
   ExternalLink, Copy, Check, Search, Lock, KeyRound,
+  Settings, Upload, Save,
 } from 'lucide-angular';
 import { SubscriptionService, SubscriptionPaymentRecord } from '../../core/subscription.service';
 import { ToastService } from '../../core/toast.service';
@@ -20,7 +22,7 @@ const SESSION_KEY = 'sp_admin_unlocked';
   selector: 'app-subscription-admin',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, LucideAngularModule, DatePipe, DecimalPipe],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, DatePipe, DecimalPipe],
   template: `
     <!-- ── Passcode gate ────────────────────────────────────────────── -->
     @if (!unlocked()) {
@@ -80,16 +82,46 @@ const SESSION_KEY = 'sp_admin_unlocked';
             <p class="text-sm text-gray-500 mt-0.5">Review and verify shop payment requests</p>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" (click)="refresh()" [disabled]="loading()" class="btn-secondary text-xs">
-              <lucide-icon [img]="RefreshCwIcon" size="13" [class.animate-spin]="loading()" />
-              Refresh
-            </button>
+            <div class="flex bg-gray-100 rounded-lg p-1 mr-4">
+              <button
+                type="button"
+                (click)="activeView.set('payments')"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5"
+                [class.bg-white]="activeView() === 'payments'"
+                [class.shadow-sm]="activeView() === 'payments'"
+                [class.text-gray-900]="activeView() === 'payments'"
+                [class.text-gray-500]="activeView() !== 'payments'"
+              >
+                <lucide-icon [img]="ShieldCheckIcon" size="14" />
+                Payments
+              </button>
+              <button
+                type="button"
+                (click)="activeView.set('settings')"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5"
+                [class.bg-white]="activeView() === 'settings'"
+                [class.shadow-sm]="activeView() === 'settings'"
+                [class.text-gray-900]="activeView() === 'settings'"
+                [class.text-gray-500]="activeView() !== 'settings'"
+              >
+                <lucide-icon [img]="SettingsIcon" size="14" />
+                Settings
+              </button>
+            </div>
+            @if (activeView() === 'payments') {
+              <button type="button" (click)="refresh()" [disabled]="loading()" class="btn-secondary text-xs">
+                <lucide-icon [img]="RefreshCwIcon" size="13" [class.animate-spin]="loading()" />
+                Refresh
+              </button>
+            }
             <button type="button" (click)="lock()" class="btn-secondary text-xs text-red-600 border-red-200 hover:bg-red-50">
               <lucide-icon [img]="LockIcon" size="13" />
               Lock
             </button>
           </div>
         </div>
+
+        @if (activeView() === 'payments') {
 
         <!-- Stats -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -324,6 +356,77 @@ const SESSION_KEY = 'sp_admin_unlocked';
             }
           </div>
         }
+        }
+        
+        @if (activeView() === 'settings') {
+          <div class="card p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <lucide-icon [img]="SettingsIcon" size="20" class="text-primary-600" />
+              System Payment Accounts
+            </h2>
+            <form [formGroup]="adminSettingsForm" (ngSubmit)="saveAdminSubSettings()" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Monthly Fee (Rs.)</label>
+                  <input type="number" formControlName="monthlyFee" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                  <input type="text" formControlName="bankName" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Bank Account Title</label>
+                  <input type="text" formControlName="accountTitle" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Bank Account Number</label>
+                  <input type="text" formControlName="accountNumber" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                  <input type="text" formControlName="iban" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Easypaisa Title</label>
+                  <input type="text" formControlName="easypaisaTitle" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Easypaisa Number</label>
+                  <input type="text" formControlName="easypaisaNumber" class="form-input w-full" />
+                </div>
+              </div>
+
+              <!-- Admin QR Upload -->
+              <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">System Payment QR Code</label>
+                <div class="flex items-center gap-4">
+                  <label class="btn-secondary cursor-pointer py-2 px-4">
+                    <lucide-icon [img]="UploadIcon" size="16" />
+                    Upload QR Code
+                    <input type="file" accept="image/*" class="sr-only" (change)="onAdminQrFileChange($event)" />
+                  </label>
+                  @if (adminQrPreview()) {
+                    <span class="text-sm text-green-600 font-medium flex items-center gap-1">
+                      <lucide-icon [img]="CheckCircle2Icon" size="16" />
+                      QR Image selected
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="flex justify-end pt-4 border-t border-gray-100">
+                <button type="submit" class="btn-primary flex items-center gap-2" [disabled]="adminSettingsSaving()">
+                  @if (adminSettingsSaving()) {
+                    <lucide-icon [img]="Loader2Icon" size="16" class="animate-spin" />
+                  } @else {
+                    <lucide-icon [img]="SaveIcon" size="16" />
+                  }
+                  Save System Accounts
+                </button>
+              </div>
+            </form>
+          </div>
+        }
 
       </div>
     }
@@ -350,6 +453,13 @@ export class SubscriptionAdminComponent implements OnInit {
   readonly SearchIcon       = Search;
   readonly LockIcon         = Lock;
   readonly KeyRoundIcon     = KeyRound;
+  readonly SettingsIcon     = Settings;
+  readonly UploadIcon       = Upload;
+  readonly SaveIcon         = Save;
+
+  private readonly fb       = inject(FormBuilder);
+
+  readonly activeView = signal<'payments' | 'settings'>('payments');
 
   readonly filterTabs: { label: string; value: FilterStatus }[] = [
     { label: 'All',      value: 'all'      },
@@ -359,7 +469,7 @@ export class SubscriptionAdminComponent implements OnInit {
   ];
 
   // ── Passcode gate ─────────────────────────────────────────────────────────
-  readonly unlocked    = signal(sessionStorage.getItem(SESSION_KEY) === '1');
+  readonly unlocked    = signal(!!sessionStorage.getItem('sp_admin_passcode'));
   readonly verifying   = signal(false);
   readonly gateError   = signal<string | null>(null);
 
@@ -392,8 +502,26 @@ export class SubscriptionAdminComponent implements OnInit {
     return list;
   });
 
+  // ── Settings state ────────────────────────────────────────────────────────
+  readonly adminSettingsSaving = signal(false);
+  readonly adminQrPreview      = signal<string | null>(null);
+
+  readonly adminSettingsForm = this.fb.nonNullable.group({
+    monthlyFee:      [2000, [Validators.required, Validators.min(1)]],
+    bankName:        ['', Validators.required],
+    accountTitle:    ['', Validators.required],
+    accountNumber:   ['', Validators.required],
+    iban:            [''],
+    easypaisaTitle:  ['', Validators.required],
+    easypaisaNumber: ['', Validators.required],
+    instructions:    ['Transfer the monthly fee to Easypaisa or Bank Account, then submit TRX ID.'],
+  });
+
   async ngOnInit(): Promise<void> {
-    if (this.unlocked()) await this.refresh();
+    if (this.unlocked()) {
+      await this.refresh();
+      await this.loadSettings();
+    }
   }
 
   async verify(passcode: string): Promise<void> {
@@ -402,9 +530,10 @@ export class SubscriptionAdminComponent implements OnInit {
     this.gateError.set(null);
     try {
       await this.api.post<{ ok: boolean }>('/api/v1/subscription/admin/auth', { passcode });
-      sessionStorage.setItem(SESSION_KEY, '1');
+      sessionStorage.setItem('sp_admin_passcode', passcode);
       this.unlocked.set(true);
       await this.refresh();
+      await this.loadSettings();
     } catch (err) {
       this.gateError.set(err instanceof Error ? err.message : 'Incorrect passcode.');
     } finally {
@@ -413,9 +542,10 @@ export class SubscriptionAdminComponent implements OnInit {
   }
 
   lock(): void {
-    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem('sp_admin_passcode');
     this.unlocked.set(false);
     this.allPayments.set([]);
+    this.activeView.set('payments');
   }
 
   onSearch(event: Event): void {
@@ -462,5 +592,62 @@ export class SubscriptionAdminComponent implements OnInit {
     } catch (err) {
       this.toast.error(err instanceof Error ? err.message : 'Failed to reject.');
     } finally { this.actionId.set(null); this.pendingAction.set(null); }
+  }
+
+  // ── Settings methods ──────────────────────────────────────────────────────
+  async loadSettings(): Promise<void> {
+    try {
+      const s = await this.subService.loadAdminSettings();
+      if (s) {
+        this.adminSettingsForm.patchValue({
+          monthlyFee:      s.monthly_fee ?? 2000,
+          bankName:        s.bank_name ?? '',
+          accountTitle:    s.account_title ?? '',
+          accountNumber:   s.account_number ?? '',
+          iban:            s.iban ?? '',
+          easypaisaTitle:  s.easypaisa_title ?? '',
+          easypaisaNumber: s.easypaisa_number ?? '',
+          instructions:    s.instructions ?? '',
+        });
+        this.adminQrPreview.set(s.paymentQrDataUri);
+      }
+    } catch (err) {
+      this.toast.error('Failed to load system settings.');
+    }
+  }
+
+  onAdminQrFileChange(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUri = e.target?.result as string;
+      this.adminQrPreview.set(dataUri);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async saveAdminSubSettings(): Promise<void> {
+    if (this.adminSettingsForm.invalid) return;
+    this.adminSettingsSaving.set(true);
+    try {
+      const val = this.adminSettingsForm.getRawValue();
+      await this.subService.updateSystemSettings({
+        monthly_fee:      Number(val.monthlyFee),
+        bank_name:        val.bankName,
+        account_title:    val.accountTitle,
+        account_number:   val.accountNumber,
+        iban:             val.iban,
+        easypaisa_title:  val.easypaisaTitle,
+        easypaisa_number: val.easypaisaNumber,
+        instructions:     val.instructions,
+        paymentQrBase64:  this.adminQrPreview(),
+      });
+      this.toast.success('System payment accounts updated successfully.');
+    } catch (err) {
+      this.toast.error(err instanceof Error ? err.message : 'Failed to update system accounts.');
+    } finally {
+      this.adminSettingsSaving.set(false);
+    }
   }
 }

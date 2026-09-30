@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component, inject, signal, computed, OnInit, ChangeDetectionStrategy,
   HostListener, ViewChild, ElementRef, ChangeDetectorRef,
 } from '@angular/core';
@@ -692,7 +692,7 @@ export class PosComponent implements OnInit {
         '/api/v1/pos/checkout',
         { items, discount: disc, paymentMethod: this.paymentMethod(),
           idempotencyKey, customerName: cName, customerPhone: cPhone, customerCnic: cCnic },
-        idempotencyKey,
+        { idempotencyKey },
       );
       const o = result.order as {
         order_number: string; created_at: string; id: string;

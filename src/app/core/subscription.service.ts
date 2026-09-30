@@ -98,24 +98,40 @@ export class SubscriptionService {
   }
 
   // Admin APIs
+  private get adminHeaders() {
+    const passcode = sessionStorage.getItem('sp_admin_passcode') ?? '';
+    return { 'X-Admin-Passcode': passcode };
+  }
+
   async loadAdminPayments(): Promise<SubscriptionPaymentRecord[]> {
     const res = await this.api.get<{ payments: SubscriptionPaymentRecord[] }>(
       '/api/v1/subscription/admin',
+      { headers: this.adminHeaders }
     );
     return res.payments;
   }
 
+  async loadAdminSettings(): Promise<SystemPaymentSettings> {
+    const res = await this.api.get<{ settings: SystemPaymentSettings }>(
+      '/api/v1/subscription/admin/settings',
+      { headers: this.adminHeaders }
+    );
+    return res.settings;
+  }
+
   async verifyPayment(paymentId: string, action: 'approve' | 'reject', adminNotes?: string): Promise<void> {
-    await this.api.post('/api/v1/subscription/admin', {
-      paymentId,
-      action,
-      adminNotes,
-    });
-    await this.load();
+    await this.api.post(
+      '/api/v1/subscription/admin',
+      { paymentId, action, adminNotes },
+      { headers: this.adminHeaders }
+    );
   }
 
   async updateSystemSettings(settings: Partial<SystemPaymentSettings> & { paymentQrBase64?: string | null }): Promise<void> {
-    await this.api.patch('/api/v1/subscription/admin/settings', settings);
-    await this.load();
+    await this.api.patch(
+      '/api/v1/subscription/admin/settings',
+      settings,
+      { headers: this.adminHeaders }
+    );
   }
 }

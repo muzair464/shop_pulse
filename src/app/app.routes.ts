@@ -8,6 +8,12 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
 
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./features/admin/subscription-admin.component').then(m => m.SubscriptionAdminComponent),
+  },
+
   // ── Public auth shell (centred card layout, no nav) ───────────────────────
   {
     path: '',
@@ -89,11 +95,6 @@ export const routes: Routes = [
         path: 'settings',
         loadComponent: () =>
           import('./features/settings/settings.component').then(m => m.SettingsComponent),
-      },
-      {
-        path: 'admin',
-        loadComponent: () =>
-          import('./features/admin/subscription-admin.component').then(m => m.SubscriptionAdminComponent),
       },
     ],
   },

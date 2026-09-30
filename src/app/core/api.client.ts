@@ -44,11 +44,15 @@ export class ApiClient {
     return new HttpHeaders({ 'Content-Type': 'application/json' });
   }
 
-  async get<T>(path: string): Promise<T> {
+  async get<T>(path: string, options?: { headers?: Record<string, string> }): Promise<T> {
     try {
+      let headers = this.defaultHeaders;
+      if (options?.headers) {
+        for (const [k, v] of Object.entries(options.headers)) headers = headers.set(k, v);
+      }
       return await firstValueFrom(
         this.http.get<T>(`${this.base}${path}`, {
-          headers: this.defaultHeaders,
+          headers,
           withCredentials: true,
         }),
       );
@@ -57,10 +61,15 @@ export class ApiClient {
     }
   }
 
-  async post<T>(path: string, body: unknown, idempotencyKey?: string): Promise<T> {
-    const headers = idempotencyKey
-      ? this.defaultHeaders.set('X-Idempotency-Key', idempotencyKey)
-      : this.defaultHeaders;
+  async post<T>(path: string, body: unknown, options?: { headers?: Record<string, string>; idempotencyKey?: string }): Promise<T> {
+    let headers = this.defaultHeaders;
+    if (options?.idempotencyKey) {
+      headers = headers.set('X-Idempotency-Key', options.idempotencyKey);
+    }
+    if (options?.headers) {
+      for (const [k, v] of Object.entries(options.headers)) headers = headers.set(k, v);
+    }
+
     try {
       return await firstValueFrom(
         this.http.post<T>(`${this.base}${path}`, body, {
@@ -73,14 +82,19 @@ export class ApiClient {
     }
   }
 
-  async patch<T>(path: string, body: unknown): Promise<T> {
+  async patch<T>(path: string, body: unknown, options?: { headers?: Record<string, string> }): Promise<T> {
     try {
+      let headers = this.defaultHeaders;
+      if (options?.headers) {
+        for (const [k, v] of Object.entries(options.headers)) headers = headers.set(k, v);
+      }
       return await firstValueFrom(
         this.http.patch<T>(`${this.base}${path}`, body, {
-          headers: this.defaultHeaders,
+          headers,
           withCredentials: true,
         }),
       );
+
     } catch (err) {
       throw ApiError.from(err);
     }
