@@ -508,12 +508,12 @@ export class SubscriptionAdminComponent implements OnInit {
 
   readonly adminSettingsForm = this.fb.nonNullable.group({
     monthlyFee:      [2000, [Validators.required, Validators.min(1)]],
-    bankName:        ['', Validators.required],
-    accountTitle:    ['', Validators.required],
-    accountNumber:   ['', Validators.required],
+    bankName:        [''],
+    accountTitle:    [''],
+    accountNumber:   [''],
     iban:            [''],
-    easypaisaTitle:  ['', Validators.required],
-    easypaisaNumber: ['', Validators.required],
+    easypaisaTitle:  [''],
+    easypaisaNumber: [''],
     instructions:    ['Transfer the monthly fee to Easypaisa or Bank Account, then submit TRX ID.'],
   });
 
