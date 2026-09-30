@@ -128,9 +128,20 @@ export class SubscriptionService {
   }
 
   async updateSystemSettings(settings: Partial<SystemPaymentSettings> & { paymentQrBase64?: string | null }): Promise<void> {
+    const payload = {
+      monthlyFee: settings.monthly_fee,
+      bankName: settings.bank_name,
+      accountTitle: settings.account_title,
+      accountNumber: settings.account_number,
+      iban: settings.iban,
+      easypaisaTitle: settings.easypaisa_title,
+      easypaisaNumber: settings.easypaisa_number,
+      instructions: settings.instructions,
+      paymentQrBase64: settings.paymentQrBase64,
+    };
     await this.api.patch(
       '/api/v1/subscription/admin/settings',
-      settings,
+      payload,
       { headers: this.adminHeaders }
     );
   }
