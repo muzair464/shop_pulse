@@ -88,7 +88,7 @@ import { AuthService } from '../../core/auth.service';
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                   <span class="text-xs text-gray-500">Monthly Fee</span>
                   <span class="text-xl font-extrabold text-gray-900">
-                    Rs. {{ (subService.subscription()?.monthlyFee ?? 2000) | number }}
+                    Rs. {{ (subService.subscription()?.monthlyFee ?? 3000) | number }}
                   </span>
                 </div>
 
@@ -339,7 +339,7 @@ export class PaymentPageComponent implements OnInit {
   readonly payments  = computed(() => this.subService.payments());
 
   readonly paymentForm = this.fb.nonNullable.group({
-    amount:        [2000, [Validators.required, Validators.min(1)]],
+    amount:        [3000, [Validators.required, Validators.min(1)]],
     paymentMethod: ['EASYPAISA' as 'EASYPAISA' | 'BANK', Validators.required],
     transactionId: ['', [Validators.required, Validators.minLength(3)]],
     senderAccount: [''],
@@ -347,7 +347,7 @@ export class PaymentPageComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.subService.load();
-    const fee = this.subService.subscription()?.monthlyFee ?? 2000;
+    const fee = this.subService.subscription()?.monthlyFee ?? 3000;
     this.paymentForm.patchValue({ amount: fee });
 
     // If subscription is now active, go to dashboard

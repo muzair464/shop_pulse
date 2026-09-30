@@ -411,6 +411,7 @@ const SESSION_KEY = 'sp_admin_unlocked';
                       <th class="text-left py-2 px-3 text-gray-500 font-semibold">ID</th>
                       <th class="text-left py-2 px-3 text-gray-500 font-semibold">Status</th>
                       <th class="text-left py-2 px-3 text-gray-500 font-semibold">Expires</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Fee</th>
                       <th class="text-left py-2 px-3 text-gray-500 font-semibold">Actions</th>
                     </tr>
                   </thead>
@@ -441,19 +442,30 @@ const SESSION_KEY = 'sp_admin_unlocked';
                             {{ s.subscription_status | titlecase }}
                           </span>
                         </td>
-                        <td class="py-3 px-3 text-gray-500">
-                          {{ s.subscription_expires_at ? (s.subscription_expires_at | date:'dd MMM yyyy') : '—' }}
+                        <td class="py-3 px-3">
+                          <input type="date" class="form-input py-1 px-2 text-[11px] w-32" 
+                                 [value]="s.subscription_expires_at ? (s.subscription_expires_at | date:'yyyy-MM-dd') : ''" 
+                                 #expiresInput />
                         </td>
                         <td class="py-3 px-3">
+                          <input type="number" class="form-input py-1 px-2 text-[11px] w-20" 
+                                 [value]="s.subscription_monthly_fee" 
+                                 #feeInput />
+                        </td>
+                        <td class="py-3 px-3 flex gap-1">
                           <select
-                            class="form-input py-1 text-xs"
+                            class="form-input py-1 px-2 text-[11px] w-24"
                             [value]="s.subscription_status"
-                            (change)="changeShopStatus(s.id, $any($event.target).value)">
+                            #statusInput>
                             <option value="active">Active</option>
                             <option value="expired">Expired</option>
                             <option value="pending_verification">Pending</option>
                             <option value="trial">Trial</option>
                           </select>
+                          <button type="button" class="btn-primary py-1 px-2 text-[11px]" 
+                                  (click)="updateShopDetails(s.id, statusInput.value, expiresInput.value, feeInput.value)">
+                            Save
+                          </button>
                         </td>
                       </tr>
                     }
@@ -780,27 +792,32 @@ export class SubscriptionAdminComponent implements OnInit {
     }
   }
 
-  async changeShopStatus(
+  async updateShopDetails(
     shopId: string,
-    status: 'active' | 'expired' | 'pending_verification' | 'trial'
+    status: string,
+    expiresAtStr: string,
+    feeStr: string
   ): Promise<void> {
     try {
       const passcode = sessionStorage.getItem('sp_admin_passcode') ?? '';
-      // active/trial → set 30-day expiry so shop is unblocked immediately
-      // expired → set expiry to now so shop is locked immediately
-      // pending_verification → leave expiry unchanged
-      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const expiresAt =
-        status === 'active' || status === 'trial' ? thirtyDaysFromNow :
-        status === 'expired'                      ? new Date().toISOString() :
-        undefined;
+      
+      let expiresAt: string | null = null;
+      if (expiresAtStr) {
+        // Convert yyyy-MM-dd back to full ISO string to store
+        expiresAt = new Date(expiresAtStr).toISOString();
+      }
 
       await this.api.patch(
         '/api/v1/subscription/admin/shops',
-        { shopId, subscriptionStatus: status, subscriptionExpiresAt: expiresAt },
+        { 
+          shopId, 
+          subscriptionStatus: status, 
+          subscriptionExpiresAt: expiresAt,
+          monthlyFee: Number(feeStr)
+        },
         { headers: { 'X-Admin-Passcode': passcode } }
       );
-      this.toast.success(`Shop marked as "${status}". Database updated.`);
+      this.toast.success(`Shop details updated.`);
       await this.loadShops();
     } catch (err) {
       this.toast.error(err instanceof Error ? err.message : 'Failed to update shop.');
