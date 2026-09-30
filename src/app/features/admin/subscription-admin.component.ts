@@ -786,15 +786,25 @@ export class SubscriptionAdminComponent implements OnInit {
   ): Promise<void> {
     try {
       const passcode = sessionStorage.getItem('sp_admin_passcode') ?? '';
+      // active/trial → set 30-day expiry so shop is unblocked immediately
+      // expired → set expiry to now so shop is locked immediately
+      // pending_verification → leave expiry unchanged
+      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresAt =
+        status === 'active' || status === 'trial' ? thirtyDaysFromNow :
+        status === 'expired'                      ? new Date().toISOString() :
+        undefined;
+
       await this.api.patch(
         '/api/v1/subscription/admin/shops',
-        { shopId, subscriptionStatus: status, subscriptionExpiresAt: status === 'active' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : undefined },
+        { shopId, subscriptionStatus: status, subscriptionExpiresAt: expiresAt },
         { headers: { 'X-Admin-Passcode': passcode } }
       );
-      this.toast.success('Shop subscription status updated.');
+      this.toast.success(`Shop marked as "${status}". Database updated.`);
       await this.loadShops();
     } catch (err) {
       this.toast.error(err instanceof Error ? err.message : 'Failed to update shop.');
     }
   }
 }
+
