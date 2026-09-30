@@ -14,6 +14,14 @@ export const routes: Routes = [
       import('./features/admin/subscription-admin.component').then(m => m.SubscriptionAdminComponent),
   },
 
+  // ── Payment page (auth required but no nav/layout, shown when sub expired) ───────
+  {
+    path: 'payment',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/payment/payment-page.component').then(m => m.PaymentPageComponent),
+  },
+
   // ── Public auth shell (centred card layout, no nav) ───────────────────────
   {
     path: '',

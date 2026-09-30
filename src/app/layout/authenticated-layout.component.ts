@@ -19,7 +19,6 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { TopNavComponent } from './top-nav.component';
 import { ToastContainerComponent } from '../shared/toast-container.component';
-import { ServiceDownModalComponent } from '../shared/service-down-modal.component';
 import { ShopStore } from '../core/shop.store';
 import { InventoryStore } from '../core/inventory.store';
 import { OrdersStore } from '../core/orders.store';
@@ -31,7 +30,7 @@ import { SubscriptionService } from '../core/subscription.service';
 @Component({
   selector: 'app-authenticated-layout',
   standalone: true,
-  imports: [RouterOutlet, TopNavComponent, ToastContainerComponent, ServiceDownModalComponent],
+  imports: [RouterOutlet, TopNavComponent, ToastContainerComponent],
   template: `
     <div class="min-h-screen bg-surface">
       <app-top-nav />
@@ -45,11 +44,6 @@ import { SubscriptionService } from '../core/subscription.service';
         <router-outlet />
       </main>
       <app-toast-container />
-
-      <!-- Full Service Lockout Modal when subscription is expired/down -->
-      @if (subService.isDown()) {
-        <app-service-down-modal />
-      }
     </div>
   `,
 })
@@ -93,6 +87,12 @@ export class AuthenticatedLayoutComponent implements OnInit, OnDestroy {
       this.ordersStore.load(shopId),
       this.subService.load(),
     ]);
+
+    // Redirect to payment page if subscription is not active
+    if (this.subService.isDown()) {
+      void this.router.navigate(['/payment']);
+      return;
+    }
 
     // Daily backup — runs silently in background after stores are ready.
     // Uses localStorage to ensure it only triggers once per calendar day.

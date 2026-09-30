@@ -8,13 +8,25 @@ import {
   ShieldCheck, XCircle, Clock, CheckCircle2, RefreshCw,
   Building, Smartphone, Eye, DollarSign, Loader2,
   ExternalLink, Copy, Check, Search, Lock, KeyRound,
-  Settings, Upload, Save,
+  Settings, Upload, Save, Store, Calendar,
 } from 'lucide-angular';
 import { SubscriptionService, SubscriptionPaymentRecord } from '../../core/subscription.service';
 import { ToastService } from '../../core/toast.service';
 import { ApiClient } from '../../core/api.client';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
+
+interface ShopRecord {
+  id: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  owner_email: string;
+  subscription_status: 'active' | 'expired' | 'pending_verification' | 'trial';
+  subscription_expires_at: string | null;
+  subscription_monthly_fee: number;
+  created_at: string;
+}
 
 const SESSION_KEY = 'sp_admin_unlocked';
 
@@ -94,6 +106,18 @@ const SESSION_KEY = 'sp_admin_unlocked';
               >
                 <lucide-icon [img]="ShieldCheckIcon" size="14" />
                 Payments
+              </button>
+              <button
+                type="button"
+                (click)="loadShops(); activeView.set('shops')"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5"
+                [class.bg-white]="activeView() === 'shops'"
+                [class.shadow-sm]="activeView() === 'shops'"
+                [class.text-gray-900]="activeView() === 'shops'"
+                [class.text-gray-500]="activeView() !== 'shops'"
+              >
+                <lucide-icon [img]="StoreIcon" size="14" />
+                Shops
               </button>
               <button
                 type="button"
@@ -357,7 +381,89 @@ const SESSION_KEY = 'sp_admin_unlocked';
           </div>
         }
         }
-        
+
+        @if (activeView() === 'shops') {
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <lucide-icon [img]="StoreIcon" size="20" class="text-primary-600" />
+                All Shops
+              </h2>
+              <button type="button" (click)="loadShops()" [disabled]="shopsLoading()" class="btn-secondary text-xs">
+                <lucide-icon [img]="RefreshCwIcon" size="13" [class.animate-spin]="shopsLoading()" />
+                Refresh
+              </button>
+            </div>
+
+            @if (shopsLoading()) {
+              <div class="flex items-center justify-center py-12 text-gray-400">
+                <lucide-icon [img]="RefreshCwIcon" size="28" class="animate-spin" />
+              </div>
+            } @else if (allShops().length === 0) {
+              <p class="text-center text-gray-400 py-12">No shops registered yet.</p>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Shop</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Contact</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">ID</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Status</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Expires</th>
+                      <th class="text-left py-2 px-3 text-gray-500 font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of allShops(); track s.id) {
+                      <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-3">
+                          <p class="font-semibold text-gray-900">{{ s.name }}</p>
+                          <p class="text-gray-400">{{ s.address || '—' }}</p>
+                        </td>
+                        <td class="py-3 px-3">
+                          <p class="text-gray-700">{{ s.owner_email }}</p>
+                          <p class="text-gray-400">{{ s.phone || '—' }}</p>
+                        </td>
+                        <td class="py-3 px-3">
+                          <span class="font-mono text-[10px] text-gray-400 select-all">{{ s.id }}</span>
+                        </td>
+                        <td class="py-3 px-3">
+                          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                            [class.bg-green-100]="s.subscription_status === 'active'"
+                            [class.text-green-800]="s.subscription_status === 'active'"
+                            [class.bg-amber-100]="s.subscription_status === 'pending_verification'"
+                            [class.text-amber-800]="s.subscription_status === 'pending_verification'"
+                            [class.bg-red-100]="s.subscription_status === 'expired'"
+                            [class.text-red-800]="s.subscription_status === 'expired'"
+                            [class.bg-blue-100]="s.subscription_status === 'trial'"
+                            [class.text-blue-800]="s.subscription_status === 'trial'">
+                            {{ s.subscription_status | titlecase }}
+                          </span>
+                        </td>
+                        <td class="py-3 px-3 text-gray-500">
+                          {{ s.subscription_expires_at ? (s.subscription_expires_at | date:'dd MMM yyyy') : '—' }}
+                        </td>
+                        <td class="py-3 px-3">
+                          <select
+                            class="form-input py-1 text-xs"
+                            [value]="s.subscription_status"
+                            (change)="changeShopStatus(s.id, $any($event.target).value)">
+                            <option value="active">Active</option>
+                            <option value="expired">Expired</option>
+                            <option value="pending_verification">Pending</option>
+                            <option value="trial">Trial</option>
+                          </select>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
         @if (activeView() === 'settings') {
           <div class="card p-6">
             <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -456,10 +562,12 @@ export class SubscriptionAdminComponent implements OnInit {
   readonly SettingsIcon     = Settings;
   readonly UploadIcon       = Upload;
   readonly SaveIcon         = Save;
+  readonly StoreIcon        = Store;
+  readonly CalendarIcon     = Calendar;
 
   private readonly fb       = inject(FormBuilder);
 
-  readonly activeView = signal<'payments' | 'settings'>('payments');
+  readonly activeView = signal<'payments' | 'shops' | 'settings'>('payments');
 
   readonly filterTabs: { label: string; value: FilterStatus }[] = [
     { label: 'All',      value: 'all'      },
@@ -481,6 +589,10 @@ export class SubscriptionAdminComponent implements OnInit {
   readonly actionId      = signal<string | null>(null);
   readonly pendingAction = signal<'approve' | 'reject' | null>(null);
   readonly copiedId      = signal<string | null>(null);
+
+  // ── Shops state ───────────────────────────────────────────────────────────
+  readonly allShops     = signal<ShopRecord[]>([]);
+  readonly shopsLoading = signal(false);
 
   readonly pendingCount   = computed(() => this.allPayments().filter(p => p.status === 'pending').length);
   readonly approvedCount  = computed(() => this.allPayments().filter(p => p.status === 'approved').length);
@@ -648,6 +760,41 @@ export class SubscriptionAdminComponent implements OnInit {
       this.toast.error(err instanceof Error ? err.message : 'Failed to update system accounts.');
     } finally {
       this.adminSettingsSaving.set(false);
+    }
+  }
+
+  // ── Shops management ─────────────────────────────────────────────────────────────
+  async loadShops(): Promise<void> {
+    this.shopsLoading.set(true);
+    try {
+      const passcode = sessionStorage.getItem('sp_admin_passcode') ?? '';
+      const res = await this.api.get<{ shops: ShopRecord[] }>(
+        '/api/v1/subscription/admin/shops',
+        { headers: { 'X-Admin-Passcode': passcode } }
+      );
+      this.allShops.set(res.shops);
+    } catch (err) {
+      this.toast.error(err instanceof Error ? err.message : 'Failed to load shops.');
+    } finally {
+      this.shopsLoading.set(false);
+    }
+  }
+
+  async changeShopStatus(
+    shopId: string,
+    status: 'active' | 'expired' | 'pending_verification' | 'trial'
+  ): Promise<void> {
+    try {
+      const passcode = sessionStorage.getItem('sp_admin_passcode') ?? '';
+      await this.api.patch(
+        '/api/v1/subscription/admin/shops',
+        { shopId, subscriptionStatus: status, subscriptionExpiresAt: status === 'active' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : undefined },
+        { headers: { 'X-Admin-Passcode': passcode } }
+      );
+      this.toast.success('Shop subscription status updated.');
+      await this.loadShops();
+    } catch (err) {
+      this.toast.error(err instanceof Error ? err.message : 'Failed to update shop.');
     }
   }
 }
