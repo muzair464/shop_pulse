@@ -6,7 +6,7 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   LucideAngularModule,
   Save, Loader2, Eye, EyeOff, Trash2, Upload, Download, Printer, Shield, Monitor,
-  HardDrive, CheckCircle, CreditCard, ExternalLink,
+  HardDrive, CheckCircle, CreditCard, Clock, CheckCircle2, XCircle,
 } from 'lucide-angular';
 import { ShopStore } from '../../core/shop.store';
 import { AuthService } from '../../core/auth.service';
@@ -253,14 +253,42 @@ import { RouterLink } from '@angular/router';
             </p>
           </div>
         </div>
-        <div class="mt-4 pt-4 border-t border-gray-100">
-          <a
-            routerLink="/admin"
-            class="btn-secondary text-xs flex items-center gap-1.5 w-fit"
-          >
-            <lucide-icon [img]="ExternalLinkIcon" size="13" />
-            Manage Subscriptions &amp; Payments
-          </a>
+
+        <!-- Payment History -->
+        <div class="mt-5 pt-4 border-t border-gray-100">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Payment History</p>
+          @if (subService.payments().length === 0) {
+            <p class="text-xs text-gray-400 italic">No payment submissions yet.</p>
+          } @else {
+            <div class="space-y-2">
+              @for (p of subService.payments(); track p.id) {
+                <div class="flex items-start justify-between rounded-lg px-3 py-2.5 border text-xs"
+                  [class.border-amber-200]="p.status === 'pending'"
+                  [class.bg-amber-50]="p.status === 'pending'"
+                  [class.border-green-200]="p.status === 'approved'"
+                  [class.bg-green-50]="p.status === 'approved'"
+                  [class.border-red-200]="p.status === 'rejected'"
+                  [class.bg-red-50]="p.status === 'rejected'">
+                  <div class="space-y-0.5">
+                    <div class="flex items-center gap-2">
+                      @switch (p.status) {
+                        @case ('pending')  { <lucide-icon [img]="ClockIcon"         size="12" class="text-amber-600" /> }
+                        @case ('approved') { <lucide-icon [img]="CheckCircle2Icon"  size="12" class="text-green-600" /> }
+                        @default           { <lucide-icon [img]="XCircleIcon"       size="12" class="text-red-600" /> }
+                      }
+                      <span class="font-semibold text-gray-900">Rs. {{ p.amount | number }}</span>
+                      <span class="text-gray-500">via {{ p.payment_method }}</span>
+                    </div>
+                    <p class="text-gray-500 pl-[18px]">TRX: <span class="font-mono font-semibold text-gray-700">{{ p.transaction_id }}</span></p>
+                    @if (p.admin_notes) {
+                      <p class="text-blue-700 pl-[18px] italic">Admin: {{ p.admin_notes }}</p>
+                    }
+                  </div>
+                  <span class="text-gray-400 whitespace-nowrap ml-3">{{ p.created_at | date:'dd MMM' }}</span>
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -288,7 +316,9 @@ export class SettingsComponent implements OnInit {
   readonly HardDriveIcon      = HardDrive;
   readonly CheckCircleIcon    = CheckCircle;
   readonly CreditCardIcon     = CreditCard;
-  readonly ExternalLinkIcon   = ExternalLink;
+  readonly ClockIcon          = Clock;
+  readonly CheckCircle2Icon   = CheckCircle2;
+  readonly XCircleIcon        = XCircle;
 
   readonly profileSaving       = signal(false);
   readonly passwordSaving      = signal(false);
