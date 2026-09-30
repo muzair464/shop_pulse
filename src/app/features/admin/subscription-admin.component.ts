@@ -104,7 +104,7 @@ type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
             type="text"
             placeholder="Shop name, TRX ID, email..."
             [value]="searchQuery()"
-            (input)="searchQuery.set(($event.target as HTMLInputElement).value)"
+            (input)="onSearch($event)"
             class="form-input pl-8 py-1.5 text-xs w-60"
           />
         </div>
@@ -329,6 +329,10 @@ export class SubscriptionAdminComponent implements OnInit {
     );
     return list;
   });
+
+  onSearch(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
 
   async ngOnInit(): Promise<void> { await this.refresh(); }
 
