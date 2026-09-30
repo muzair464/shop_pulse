@@ -1,11 +1,12 @@
 import {
   Component, inject, signal, OnInit, ChangeDetectionStrategy,
 } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   LucideAngularModule,
   Save, Loader2, Eye, EyeOff, Trash2, Upload, Download, Printer, Shield, Monitor,
-  HardDrive, CheckCircle,
+  HardDrive, CheckCircle, CreditCard, ExternalLink,
 } from 'lucide-angular';
 import { ShopStore } from '../../core/shop.store';
 import { AuthService } from '../../core/auth.service';
@@ -13,12 +14,14 @@ import { ApiClient, ApiError } from '../../core/api.client';
 import { ToastService } from '../../core/toast.service';
 import { ExportCsvButtonComponent } from '../../shared/export-csv-button.component';
 import { BackupService } from '../../core/backup.service';
+import { SubscriptionService } from '../../core/subscription.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LucideAngularModule, ExportCsvButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, ExportCsvButtonComponent, DatePipe, RouterLink],
   template: `
     <div class="max-w-2xl mx-auto space-y-6">
       <div class="mb-6">
@@ -220,29 +223,72 @@ import { BackupService } from '../../core/backup.service';
           </button>
         </div>
       </div>
+
+      <!-- Subscription Status (read-only — manage via Admin page) -->
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <lucide-icon [img]="CreditCardIcon" size="16" class="text-gray-400" aria-hidden="true" />
+            Monthly Subscription
+          </h2>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            [class.bg-green-100]="shopStore.isSubscriptionActive()"
+            [class.text-green-800]="shopStore.isSubscriptionActive()"
+            [class.bg-red-100]="!shopStore.isSubscriptionActive()"
+            [class.text-red-800]="!shopStore.isSubscriptionActive()"
+          >
+            {{ shopStore.isSubscriptionActive() ? 'Active' : 'Expired' }}
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+          <div>
+            <p class="text-xs text-gray-500 font-medium">Billing Cycle</p>
+            <p class="text-sm font-bold text-gray-900 mt-0.5">Monthly (30 Days)</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 font-medium">Expires On</p>
+            <p class="text-sm font-bold text-gray-900 mt-0.5">
+              {{ shopStore.subscriptionExpiresAt() ? (shopStore.subscriptionExpiresAt()! | date:'mediumDate') : '—' }}
+            </p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100">
+          <a
+            routerLink="/admin"
+            class="btn-secondary text-xs flex items-center gap-1.5 w-fit"
+          >
+            <lucide-icon [img]="ExternalLinkIcon" size="13" />
+            Manage Subscriptions &amp; Payments
+          </a>
+        </div>
+      </div>
     </div>
   `,
 })
 export class SettingsComponent implements OnInit {
-  private readonly shopStore = inject(ShopStore);
-  private readonly auth      = inject(AuthService);
-  private readonly api       = inject(ApiClient);
-  private readonly toast     = inject(ToastService);
-  private readonly fb        = inject(FormBuilder);
-  private readonly backup    = inject(BackupService);
+  readonly shopStore  = inject(ShopStore);
+  private readonly auth       = inject(AuthService);
+  private readonly api        = inject(ApiClient);
+  private readonly toast      = inject(ToastService);
+  private readonly fb         = inject(FormBuilder);
+  private readonly backup     = inject(BackupService);
+  readonly subService         = inject(SubscriptionService);
 
-  readonly SaveIcon          = Save;
-  readonly Loader2Icon       = Loader2;
-  readonly EyeIcon           = Eye;
-  readonly EyeOffIcon        = EyeOff;
-  readonly Trash2Icon        = Trash2;
-  readonly UploadIcon        = Upload;
-  readonly DownloadIcon      = Download;
-  readonly PrinterIcon       = Printer;
-  readonly ShieldIcon        = Shield;
-  readonly MonitorIcon       = Monitor;
-  readonly HardDriveIcon     = HardDrive;
-  readonly CheckCircleIcon   = CheckCircle;
+  readonly SaveIcon           = Save;
+  readonly Loader2Icon        = Loader2;
+  readonly EyeIcon            = Eye;
+  readonly EyeOffIcon         = EyeOff;
+  readonly Trash2Icon         = Trash2;
+  readonly UploadIcon         = Upload;
+  readonly DownloadIcon       = Download;
+  readonly PrinterIcon        = Printer;
+  readonly ShieldIcon         = Shield;
+  readonly MonitorIcon        = Monitor;
+  readonly HardDriveIcon      = HardDrive;
+  readonly CheckCircleIcon    = CheckCircle;
+  readonly CreditCardIcon     = CreditCard;
+  readonly ExternalLinkIcon   = ExternalLink;
 
   readonly profileSaving       = signal(false);
   readonly passwordSaving      = signal(false);
@@ -271,10 +317,9 @@ export class SettingsComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    // Step 1: populate form instantly from ShopStore (already in IDB/memory).
     this._syncFromStore();
-    // Step 2: silently refresh shop data in background so we always show latest.
     void this.shopStore.load().then(() => this._syncFromStore());
+    void this.subService.load();
   }
 
   /** Read current ShopStore state into the form and local signals. */
@@ -416,4 +461,8 @@ export class SettingsComponent implements OnInit {
       this.backupRunning.set(false);
     }
   }
+
+  // ── Subscription (read-only status) ──────────────────────────────────────
+  // Admin management moved to /admin page.
 }
+

@@ -19,17 +19,19 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { TopNavComponent } from './top-nav.component';
 import { ToastContainerComponent } from '../shared/toast-container.component';
+import { ServiceDownModalComponent } from '../shared/service-down-modal.component';
 import { ShopStore } from '../core/shop.store';
 import { InventoryStore } from '../core/inventory.store';
 import { OrdersStore } from '../core/orders.store';
 import { RealtimeSyncService } from '../core/realtime-sync.service';
 import { AuthService } from '../core/auth.service';
 import { BackupService } from '../core/backup.service';
+import { SubscriptionService } from '../core/subscription.service';
 
 @Component({
   selector: 'app-authenticated-layout',
   standalone: true,
-  imports: [RouterOutlet, TopNavComponent, ToastContainerComponent],
+  imports: [RouterOutlet, TopNavComponent, ToastContainerComponent, ServiceDownModalComponent],
   template: `
     <div class="min-h-screen bg-surface">
       <app-top-nav />
@@ -43,6 +45,11 @@ import { BackupService } from '../core/backup.service';
         <router-outlet />
       </main>
       <app-toast-container />
+
+      <!-- Full Service Lockout Modal when subscription is expired/down -->
+      @if (subService.isDown()) {
+        <app-service-down-modal />
+      }
     </div>
   `,
 })
@@ -54,6 +61,7 @@ export class AuthenticatedLayoutComponent implements OnInit, OnDestroy {
   private readonly realtime       = inject(RealtimeSyncService);
   private readonly router         = inject(Router);
   private readonly backupService  = inject(BackupService);
+  readonly subService             = inject(SubscriptionService);
 
   isPosRoute = false;
   private routerSub?: Subscription;
@@ -83,6 +91,7 @@ export class AuthenticatedLayoutComponent implements OnInit, OnDestroy {
       this.shopStore.load(),
       this.inventoryStore.load(shopId),
       this.ordersStore.load(shopId),
+      this.subService.load(),
     ]);
 
     // Daily backup — runs silently in background after stores are ready.

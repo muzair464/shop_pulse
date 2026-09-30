@@ -90,6 +90,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/settings/settings.component').then(m => m.SettingsComponent),
       },
+      {
+        path: 'admin',
+        loadComponent: () =>
+          import('./features/admin/subscription-admin.component').then(m => m.SubscriptionAdminComponent),
+      },
     ],
   },
 

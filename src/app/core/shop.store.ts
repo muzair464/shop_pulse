@@ -8,14 +8,18 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { ApiClient } from './api.client';
 
 export interface ShopProfile {
-  id:                  string;
-  shopName:            string;
-  phone:               string | null;
-  address:             string | null;
-  paymentQrDataUri:    string | null;
-  autoExportFrequency: string;
-  autoPrintReceipt:    boolean;
-  receiptFooterMessage: string | null;
+  id:                     string;
+  shopName:               string;
+  phone:                  string | null;
+  address:                string | null;
+  paymentQrDataUri:       string | null;
+  autoExportFrequency:    string;
+  autoPrintReceipt:       boolean;
+  receiptFooterMessage:   string | null;
+  subscriptionStatus?:    'active' | 'expired' | 'pending_verification' | 'trial';
+  subscriptionExpiresAt?: string | null;
+  subscriptionMonthlyFee?: number;
+  isSubscriptionActive?:  boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,6 +36,9 @@ export class ShopStore {
   readonly shopId   = computed(() => this._shop()?.id ?? null);
   readonly shopName = computed(() => this._shop()?.shopName ?? '');
   readonly paymentQrDataUri = computed(() => this._shop()?.paymentQrDataUri ?? null);
+  readonly subscriptionStatus = computed(() => this._shop()?.subscriptionStatus ?? 'active');
+  readonly subscriptionExpiresAt = computed(() => this._shop()?.subscriptionExpiresAt ?? null);
+  readonly isSubscriptionActive = computed(() => this._shop()?.isSubscriptionActive ?? true);
 
   private _loadPromise: Promise<void> | null = null;
 

@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   LayoutDashboard, ShoppingCart, Package, ClipboardList, Settings, LogOut, Zap, Menu, X,
-  BookOpen,
+  BookOpen, ShieldCheck,
 } from 'lucide-angular';
 import { AuthService } from '../core/auth.service';
 import { ShopStore } from '../core/shop.store';
@@ -93,6 +93,7 @@ export class TopNavComponent {
   readonly LogOutIcon = LogOut;
   readonly MenuIcon   = Menu;
   readonly XIcon      = X;
+  readonly ShieldCheckIcon = ShieldCheck;
 
   readonly navLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -101,6 +102,7 @@ export class TopNavComponent {
     { path: '/orders',    label: 'Orders',    icon: ClipboardList },
     { path: '/khata',     label: 'Khata',     icon: BookOpen },
     { path: '/settings',  label: 'Settings',  icon: Settings },
+    { path: '/admin',     label: 'Admin',     icon: ShieldCheck },
   ];
 
   logout(): void { void this.auth.signOut(); }
